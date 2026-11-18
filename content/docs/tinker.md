@@ -227,7 +227,7 @@ Nothing is printed when the value is `undefined`. If the code throws, the error 
 tylix tinker -e 'const n = await Post.count(); if (n === 0) throw new Error("no posts")'
 ```
 
-Every helper works in `--eval` too. Names a helper adds are available on the lines after it:
+Every helper works in `--eval` too (since 2.1.2; before that, `models()`, `reload()` and `mail()` only worked at the prompt). Names a helper adds are available on the lines after it:
 
 ```bash
 tylix tinker -e 'await mail(); return typeof sendPasswordResetEmail'
