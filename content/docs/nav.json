@@ -38,6 +38,7 @@
     "title": "Tooling",
     "items": [
       { "slug": "cli", "title": "CLI" },
+      { "slug": "tinker", "title": "Tinker" },
       { "slug": "typed-api-client", "title": "Typed API client" },
       { "slug": "editor-and-devtools", "title": "Editor & DevTools" },
       { "slug": "plugins", "title": "Plugins" }
