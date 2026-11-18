@@ -1,0 +1,210 @@
+page AuthPage
+
+import CopyCommand from "./components/CopyCommand"
+import SnippetWindow from "./components/SnippetWindow"
+import { IconArrowRight, IconLockClosed, IconRefresh, IconShieldCheck, IconCookie, IconKey, IconFingerprint, IconBan, IconKeyRound, IconUsers, IconCheck, IconServer } from "tylix-icons"
+
+title "Tylix Auth · Authentication for any JavaScript framework"
+
+state
+  tabs: [
+    { key: "auth-setup", label: "auth.js" },
+    { key: "auth-login", label: "login.js" },
+    { key: "auth-next", label: "Next.js" },
+    { key: "auth-2fa", label: "two-factor.js" },
+    { key: "auth-client", label: "browser.js" }
+  ]
+  frameworks: ["Tylix", "Next.js", "Nuxt", "SvelteKit", "Remix", "Astro", "Hono", "Express", "Fastify", "Koa"]
+  runtimes: ["Node", "Bun", "Deno", "Cloudflare Workers", "Edge"]
+  sessionRoutes: [
+    { method: "POST", path: "/api/auth/refresh", note: "Rotate the refresh token, issue a new access token" },
+    { method: "POST", path: "/api/auth/logout", note: "End this session" },
+    { method: "POST", path: "/api/auth/logout-all", note: "End every session of this user" },
+    { method: "GET", path: "/api/auth/session", note: "Who is signed in (401 for guests)" },
+    { method: "GET", path: "/api/auth/sessions", note: "This user's devices" },
+    { method: "DELETE", path: "/api/auth/sessions/:id", note: "End one of them" }
+  ]
+  adapters: [
+    { name: "sqlAdapter", text: "pg, mysql2, better-sqlite3, node:sqlite, Drizzle or Kysely raw SQL. Rotation is a real compare-and-swap." },
+    { name: "prismaAdapter", text: "Prisma, with the model definition included." },
+    { name: "keyValueAdapter", text: "Redis, Upstash, Vercel KV, Cloudflare KV or Deno KV." },
+    { name: "modelAdapter", text: "Tylix ORM models. tylix make:auth sets it up." }
+  ]
+  tylixRoutes: ["register", "login", "refresh", "logout", "logout-all", "sessions", "change-password", "verify-email", "resend-verification", "forgot-password", "reset-password", "Google & GitHub"]
+
+template
+  <div>
+    <section class="relative overflow-hidden border-b border-line">
+      <div class="tx-dots absolute inset-0 -z-0 opacity-70" aria-hidden="true"></div>
+      <div class="relative tx-container pt-16 sm:pt-24 pb-20 grid lg:grid-cols-12 gap-14 lg:gap-10 items-center">
+        <div class="lg:col-span-5">
+          <p class="inline-flex items-center gap-2 font-mono text-[13px] text-muted"><IconLockClosed class="w-4 h-4 text-brand dark:text-link" /> @tylix/auth</p>
+          <h1 class="tx-display mt-6 text-ink">Sign-in that's secure by default.</h1>
+          <p class="tx-lead mt-6 max-w-[34rem]">
+            Revocable sessions, token-theft detection, two-factor and social sign-in, for any JavaScript framework and runtime. No runtime dependencies.
+          </p>
+          <div class="mt-9 flex flex-wrap items-center gap-3">
+            <a href="/docs/authentication" class="tx-btn tx-btn-primary">Read the docs <IconArrowRight class="w-4 h-4" /></a>
+            <a href="https://github.com/Mbiyrukzz/tylix/tree/main/packages/auth" class="tx-btn tx-btn-outline" target="_blank" rel="noopener noreferrer">Source</a>
+          </div>
+          <div class="mt-6">
+            <CopyCommand command="npm install @tylix/auth" />
+          </div>
+        </div>
+        <div class="lg:col-span-7 min-w-0">
+          <SnippetWindow tabs="{{ tabs }}" />
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-line">
+      <div class="tx-container py-8 grid lg:grid-cols-2 gap-6 lg:gap-10">
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span class="text-xs font-medium text-faint uppercase tracking-[0.08em] w-full sm:w-auto">Frameworks</span>
+{{#each name in frameworks}}
+          <span class="text-[15px] font-medium text-soft">{{ name }}</span>
+{{/each}}
+        </div>
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2 lg:justify-end">
+          <span class="text-xs font-medium text-faint uppercase tracking-[0.08em] w-full sm:w-auto">Runtimes</span>
+{{#each name in runtimes}}
+          <span class="text-[15px] font-medium text-soft">{{ name }}</span>
+{{/each}}
+        </div>
+      </div>
+    </section>
+
+    <section class="tx-container py-24 sm:py-28">
+      <div class="max-w-2xl">
+        <p class="tx-eyebrow">Security</p>
+        <h2 class="tx-h2 mt-4 text-ink">The parts auth libraries leave to you, done.</h2>
+        <p class="tx-lead mt-5">Each of these is a common way sign-in goes wrong in production. They're on by default.</p>
+      </div>
+
+      <div class="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 border-l border-t border-line rounded-sm">
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconBan class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Sessions you can revoke</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Short-lived access tokens and refresh tokens stored server-side as HMACs. Logout, "sign out everywhere" and password resets apply at once.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconRefresh class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Token theft detection</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Every refresh rotates the token. A replayed old one ends the whole session, with a grace period so parallel tabs don't trip it.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconShieldCheck class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">CSRF without tokens</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Cross-site writes are refused from Sec-Fetch-Site and Origin, on top of SameSite=Lax. Sibling subdomains aren't trusted unless you list them.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconCookie class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Hardened cookies</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">HttpOnly, __Host- and __Secure- prefixes on HTTPS, and a refresh cookie scoped to the auth routes. Page JavaScript never sees a token.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconKey class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Strict JWTs</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">A pinned algorithm, a separate derived key per purpose, mandatory expiry, canonical decoding, and secrets that rotate through key ids.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconLockClosed class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Passwords done right</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">scrypt with OWASP parameters, automatic rehashing, Unicode normalization, the same work for unknown accounts, and an optional Have I Been Pwned check.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconShieldCheck class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Brute-force limits</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Per account and IP, per account and per IP, over any shared store, so they can't be used to lock someone else out.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconFingerprint class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Two-factor</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">TOTP with replay protection, hashed one-time recovery codes, and AES-GCM sealing for the secrets you store.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconUsers class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Social sign-in</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">PKCE on every flow, encrypted state, and presets for GitHub, Google, Discord, GitLab and Microsoft. Emails count as verified only when the provider says so.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-y border-line bg-raised">
+      <div class="tx-container py-24 sm:py-28 grid lg:grid-cols-2 gap-14 items-start">
+        <div>
+          <p class="tx-eyebrow">Built-in routes</p>
+          <h2 class="tx-h2 mt-4 text-ink">You check the password. It runs the session.</h2>
+          <p class="tx-lead mt-5 max-w-xl">Login stays yours: verify the password your way and call <code class="font-mono text-[0.9em] text-ink">auth.signIn()</code>. Refresh, logout and the device list are mounted for you at <code class="font-mono text-[0.9em] text-ink">/api/auth/*</code>, with a handler for every framework above.</p>
+        </div>
+        <div class="tx-window min-w-0">
+          <div class="p-5 sm:p-6 font-mono text-[13px] leading-[1.9] overflow-x-auto">
+{{#each r in sessionRoutes}}
+            <p class="flex gap-4 whitespace-nowrap"><span class="inline-block w-16 shrink-0 text-brand dark:text-link">{{ r.method }}</span><span class="text-ink w-52 shrink-0">{{ r.path }}</span><span class="text-faint hidden sm:inline">{{ r.note }}</span></p>
+{{/each}}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tx-container py-24 sm:py-28">
+      <div class="grid lg:grid-cols-3 gap-12 lg:gap-16">
+        <div>
+          <p class="tx-eyebrow">Storage</p>
+          <h2 class="tx-h2 mt-4 text-ink">Sessions in the database you already have.</h2>
+          <p class="tx-lead mt-5">Or implement the six-method adapter interface for anything else.</p>
+        </div>
+        <div class="lg:col-span-2 grid sm:grid-cols-2 gap-px bg-line border border-line rounded-xl overflow-hidden">
+{{#each a in adapters}}
+          <div class="bg-canvas p-7">
+            <IconServer class="w-5 h-5 text-muted" />
+            <h3 class="mt-4 font-mono text-[14px] font-medium text-ink">{{ a.name }}()</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">{{ a.text }}</p>
+          </div>
+{{/each}}
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-line bg-raised">
+      <div class="tx-container py-24 sm:py-28 grid lg:grid-cols-2 gap-14 items-center">
+        <div>
+          <p class="tx-eyebrow">In a Tylix app</p>
+          <h2 class="tx-h2 mt-4 text-ink">Already there when you create the app.</h2>
+          <p class="tx-lead mt-5 max-w-xl">Since 2.1 every new app has authentication: the models, the controller, the mails, and login, register, reset and dashboard pages for your frontend. Existing apps get it with one command.</p>
+          <div class="mt-8 flex flex-wrap gap-2">
+{{#each r in tylixRoutes}}
+            <span class="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-line bg-canvas text-[13px] text-soft"><IconCheck class="w-3.5 h-3.5 text-mint" /> {{ r }}</span>
+{{/each}}
+          </div>
+          <a href="/docs/authentication" class="tx-link inline-flex items-center gap-1.5 mt-8 text-[15px]">Authentication in Tylix <IconArrowRight class="w-4 h-4" /></a>
+        </div>
+        <div class="tx-window min-w-0">
+          <div class="p-5 sm:p-6 font-mono text-[13px] leading-[1.75] overflow-x-auto">
+            <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix make:auth</p>
+            <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix migrate</p>
+            <p class="mt-4 whitespace-nowrap text-faint"># .env: social sign-in appears once these are set</p>
+            <p class="whitespace-nowrap text-soft">GOOGLE_CLIENT_ID=…</p>
+            <p class="whitespace-nowrap text-soft">GITHUB_CLIENT_ID=…</p>
+            <p class="mt-4 whitespace-nowrap text-faint"># tylix.config.ts</p>
+            <p class="whitespace-nowrap text-soft">auth: { tokenExpiresInSeconds: 900, checkBreachedPasswords: true }</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-line">
+      <div class="tx-container py-20 sm:py-24 grid sm:grid-cols-2 gap-4">
+        <a href="/permissions" class="tx-panel p-7 hover:border-line-strong transition-colors">
+          <IconKeyRound class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 font-semibold text-ink">Next: who may do what</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Roles, permissions, teams and expiring grants on top of the signed-in user, with @tylix/permissions.</p>
+        </a>
+        <a href="/docs/installation" class="tx-panel p-7 hover:border-line-strong transition-colors">
+          <IconArrowRight class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 font-semibold text-ink">Start a Tylix app</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">npm create tylix@latest gives you all of this, wired to a database, in under a minute.</p>
+        </a>
+      </div>
+    </section>
+  </div>

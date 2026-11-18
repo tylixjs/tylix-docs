@@ -1,0 +1,166 @@
+page WhatsNewPage
+
+import SnippetWindow from "./components/SnippetWindow"
+import { IconArrowRight, IconKeyRound, IconDeviceMobile, IconLockClosed, IconSparkles, IconBug, IconTerminal, IconCheck } from "tylix-icons"
+
+title "What's new in Tylix 2.1"
+
+state
+  permTabs: [
+    { key: "perm-define", label: "roles.js" },
+    { key: "perm-page", label: "Posts.tyx" },
+    { key: "perm-react", label: "App.jsx" }
+  ]
+  pwaTabs: [
+    { key: "new-pwa", label: "tylix.config.js" }
+  ]
+  upgradeTabs: [
+    { key: "new-upgrade", label: "terminal" }
+  ]
+  permPoints: [
+    "Roles, permissions and direct grants, with wildcards (posts.*, posts.edit,delete, *) built in",
+    "Role inheritance, and denies (!posts.delete) that beat any allow",
+    "Teams on every assignment, grants that expire, default roles for every account",
+    "Resource rules: can(user, 'posts.update', post)",
+    "user.access checked synchronously in the browser with the server's matching: <Can>, v-can, use:can, injectCan",
+    "make:permissions writes the models, migration, seeder, an admin API and an admin page at /admin/access"
+  ]
+  pwaPoints: [
+    "One pwa block in tylix.config, or tylix make:pwa: Tylix serves the manifest and a generated service worker",
+    "Pages are never cached by default, because they can hold a signed-in user's data, and the API is never touched",
+    "Each deploy is a new version; open pages offer to switch to it",
+    "Install and update prompts for .tyx, React, Vue, Svelte and Angular",
+    "manifest(), serviceWorker() and headTags() work without Tylix"
+  ]
+  starterPoints: [
+    "Every new app is the full starter: login, registration, Google and GitHub sign-in, email verification, password reset, a dashboard and posts",
+    "The installer asks whether to make an installable app instead (--pwa does the same)",
+    "A loading screen until the first render: the Tylix mark lit stroke by stroke, after 150ms so quick loads never flash it. loadingScreen: false turns it off"
+  ]
+  patch: [
+    { title: "A loading indicator on every page", text: "React, Vue, Svelte and Angular starters get a PageLoading component, used by every page that waits on data and by the session check before a guarded page." },
+    { title: "Image uploads work out of the box", text: "New projects set MAX_BODY_BYTES to 4 MB. Existing apps: raise MAX_BODY_BYTES in .env to at least 3 MB, since base64 images up to 2 MB are about a third bigger." },
+    { title: "Logos", text: "New @tylix/excel and @tylix/pdf logos." }
+  ]
+  fixes: [
+    "Angular server rendering failed with NG0201 in apps installed from npm. @tylix/angular is now bundled into the server build with Angular itself.",
+    "Native components' style sections were dropped; they now reach the page.",
+    "public/*.html files are served as HTML (they were downloads).",
+    "%tylix.head% inside an HTML comment in app/index.html no longer gets a second copy of the head."
+  ]
+
+template
+  <div>
+    <section class="relative overflow-hidden border-b border-line">
+      <div class="tx-dots absolute inset-0 -z-0 opacity-70" aria-hidden="true"></div>
+      <div class="relative tx-container pt-16 sm:pt-24 pb-20 max-w-3xl">
+        <p class="inline-flex items-center gap-2 font-mono text-[13px] text-muted"><IconSparkles class="w-4 h-4 text-brand dark:text-link" /> Release notes <span class="tx-badge h-5 border-0 bg-brand-soft text-brand dark:text-link">2.1.1</span></p>
+        <h1 class="tx-display mt-6 text-ink">What's new in Tylix 2.1</h1>
+        <p class="tx-lead mt-6 max-w-[40rem]">
+          Roles and permissions for any JavaScript app, installable apps with offline support, and a starter that comes with authentication. Every @tylix package shares one version and is released together.
+        </p>
+        <nav class="mt-9 flex flex-wrap items-center gap-2" aria-label="On this page">
+          <a href="#permissions" class="tx-btn tx-btn-primary tx-btn-sm">Permissions</a>
+          <a href="#pwa" class="tx-btn tx-btn-outline tx-btn-sm">Installable apps</a>
+          <a href="#starter" class="tx-btn tx-btn-outline tx-btn-sm">Starter &amp; loading</a>
+          <a href="#patch" class="tx-btn tx-btn-outline tx-btn-sm">2.1.1</a>
+          <a href="#upgrade" class="tx-btn tx-btn-ghost tx-btn-sm">Upgrade</a>
+        </nav>
+      </div>
+    </section>
+
+    <section id="permissions" class="tx-container py-24 sm:py-28 scroll-mt-20">
+      <div class="grid lg:grid-cols-12 gap-14 lg:gap-10 items-start">
+        <div class="lg:col-span-5">
+          <p class="tx-eyebrow inline-flex items-center gap-2"><IconKeyRound class="w-4 h-4" /> @tylix/permissions</p>
+          <h2 class="tx-h2 mt-4 text-ink">Roles and permissions, inspired by spatie/laravel-permission.</h2>
+          <ul class="mt-6 space-y-3">
+{{#each p in permPoints}}
+            <li class="flex gap-3 text-[15px] leading-relaxed text-soft"><IconCheck class="w-4 h-4 mt-1 shrink-0 text-brand dark:text-link" /><span>{{ p }}</span></li>
+{{/each}}
+          </ul>
+          <div class="mt-8 flex flex-wrap items-center gap-3">
+            <a href="/permissions" class="tx-btn tx-btn-ink tx-btn-sm">Tour <IconArrowRight class="w-4 h-4" /></a>
+            <a href="/docs/permissions" class="tx-btn tx-btn-outline tx-btn-sm">Docs</a>
+          </div>
+        </div>
+        <div class="lg:col-span-7 min-w-0">
+          <SnippetWindow tabs="{{ permTabs }}" />
+        </div>
+      </div>
+    </section>
+
+    <section id="pwa" class="border-y border-line bg-raised scroll-mt-20">
+      <div class="tx-container py-24 sm:py-28 grid lg:grid-cols-12 gap-14 lg:gap-10 items-start">
+        <div class="lg:col-span-5">
+          <p class="tx-eyebrow inline-flex items-center gap-2"><IconDeviceMobile class="w-4 h-4" /> @tylix/pwa</p>
+          <h2 class="tx-h2 mt-4 text-ink">Any Tylix app, installable and usable offline.</h2>
+          <ul class="mt-6 space-y-3">
+{{#each p in pwaPoints}}
+            <li class="flex gap-3 text-[15px] leading-relaxed text-soft"><IconCheck class="w-4 h-4 mt-1 shrink-0 text-brand dark:text-link" /><span>{{ p }}</span></li>
+{{/each}}
+          </ul>
+          <div class="mt-8">
+            <a href="/docs/pwa" class="tx-btn tx-btn-ink tx-btn-sm">PWA docs <IconArrowRight class="w-4 h-4" /></a>
+          </div>
+        </div>
+        <div class="lg:col-span-7 min-w-0">
+          <SnippetWindow tabs="{{ pwaTabs }}" />
+        </div>
+      </div>
+    </section>
+
+    <section id="starter" class="tx-container py-24 sm:py-28 scroll-mt-20">
+      <div class="max-w-3xl">
+        <p class="tx-eyebrow inline-flex items-center gap-2"><IconLockClosed class="w-4 h-4" /> create-tylix</p>
+        <h2 class="tx-h2 mt-4 text-ink">Authentication in every new app.</h2>
+        <ul class="mt-6 space-y-3">
+{{#each p in starterPoints}}
+          <li class="flex gap-3 text-[15px] leading-relaxed text-soft"><IconCheck class="w-4 h-4 mt-1 shrink-0 text-brand dark:text-link" /><span>{{ p }}</span></li>
+{{/each}}
+        </ul>
+        <p class="mt-6 text-sm text-muted"><span class="font-medium text-soft">Changed:</span> "None" is gone from the database choices, because authentication needs one; <code class="font-mono text-[0.9em] text-ink">--database none</code> is refused with a message. <code class="font-mono text-[0.9em] text-ink">--auth</code> still parses so existing scripts run.</p>
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <a href="/auth" class="tx-btn tx-btn-ink tx-btn-sm">Tylix Auth <IconArrowRight class="w-4 h-4" /></a>
+          <a href="/docs/installation" class="tx-btn tx-btn-outline tx-btn-sm">Create an app</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="patch" class="border-y border-line bg-raised scroll-mt-20">
+      <div class="tx-container py-20 sm:py-24">
+        <p class="tx-eyebrow">2.1.1</p>
+        <h2 class="tx-h2 mt-4 text-ink">The patch release.</h2>
+        <div class="mt-10 grid md:grid-cols-3 gap-px bg-line border border-line rounded-xl overflow-hidden">
+{{#each p in patch}}
+          <div class="bg-canvas p-7">
+            <h3 class="text-[15px] font-semibold text-ink">{{ p.title }}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">{{ p.text }}</p>
+          </div>
+{{/each}}
+        </div>
+
+        <h3 class="mt-14 text-[15px] font-semibold text-ink inline-flex items-center gap-2"><IconBug class="w-4 h-4 text-muted" /> Fixed in 2.1</h3>
+        <ul class="mt-4 space-y-2.5 max-w-3xl">
+{{#each f in fixes}}
+          <li class="text-sm leading-relaxed text-muted pl-4 border-l-2 border-line">{{ f }}</li>
+{{/each}}
+        </ul>
+      </div>
+    </section>
+
+    <section id="upgrade" class="tx-container py-24 sm:py-28 grid lg:grid-cols-12 gap-14 lg:gap-10 items-start scroll-mt-20">
+      <div class="lg:col-span-5">
+        <p class="tx-eyebrow inline-flex items-center gap-2"><IconTerminal class="w-4 h-4" /> Upgrading from 2.0</p>
+        <h2 class="tx-h2 mt-4 text-ink">Update the packages, then add what you want.</h2>
+        <p class="tx-lead mt-5">Permissions and installable apps are opt-in: an app keeps working as it was until you run their generators. If your app accepts image uploads, raise <code class="font-mono text-[0.9em] text-ink">MAX_BODY_BYTES</code> as described above.</p>
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <a href="/docs/upgrading" class="tx-btn tx-btn-ink tx-btn-sm">Upgrading from 1.x <IconArrowRight class="w-4 h-4" /></a>
+          <a href="https://github.com/Mbiyrukzz/tylix/blob/main/CHANGELOG.md" class="tx-btn tx-btn-outline tx-btn-sm" target="_blank" rel="noopener noreferrer">Full changelog</a>
+        </div>
+      </div>
+      <div class="lg:col-span-7 min-w-0">
+        <SnippetWindow tabs="{{ upgradeTabs }}" />
+      </div>
+    </section>
+  </div>

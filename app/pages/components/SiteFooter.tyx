@@ -1,67 +1,75 @@
 component SiteFooter
 
-props
-  showPosts: boolean
-  showAccount: boolean
-
-state
-  year: 2026
+import { IconGithub } from "tylix-icons"
 
 computed
   columns() {
-    const project = []
-    if this.showPosts {
-      project.push({ label: "Posts", href: "/posts" })
-    }
-    if this.showAccount {
-      project.push({ label: "Log in", href: "/login" })
-      project.push({ label: "Create account", href: "/register" })
-    }
-
-    const result = [
+    return [
+      {
+        title: "Docs",
+        links: [
+          { label: "Introduction", href: "/docs" },
+          { label: "Installation", href: "/docs/installation" },
+          { label: "The .tyx language", href: "/docs/pages" },
+          { label: "CLI reference", href: "/docs/cli" }
+        ]
+      },
+      {
+        title: "Packages",
+        links: [
+          { label: "Tylix Auth", href: "/auth" },
+          { label: "Roles & permissions", href: "/permissions" },
+          { label: "PDF & Excel", href: "/documents" },
+          { label: "Installable apps", href: "/docs/pwa" }
+        ]
+      },
       {
         title: "Framework",
         links: [
-          { label: "Documentation", href: "https://tylix.dev/docs" },
-          { label: "CLI reference", href: "https://tylix.dev/docs/cli" },
-          { label: "Changelog", href: "https://tylix.dev/changelog" }
+          { label: "What's new in 2.1", href: "/whats-new" },
+          { label: "Changelog", href: "/changelog" },
+          { label: "Status", href: "/status" },
+          { label: "Upgrading from 1.x", href: "/docs/upgrading" },
+          { label: "VS Code extension", href: "/docs/editor-and-devtools" }
+        ]
+      },
+      {
+        title: "Community",
+        links: [
+          { label: "GitHub", href: "https://github.com/tylixjs" },
+          { label: "Discord", href: "https://discord.gg/tylix" },
+          { label: "Contributing", href: "/docs/contributing" }
         ]
       }
     ]
-    if project.length > 0 {
-      result.push({ title: "Project", links: project })
-    }
-    result.push({
-      title: "Community",
-      links: [
-        { label: "GitHub", href: "https://github.com/tylixjs" },
-        { label: "Discord", href: "https://discord.gg/tylix" }
-      ]
-    })
-    return result
+  }
+
+  year() {
+    return new Date().getFullYear()
   }
 
 template
-  <footer class="border-t border-line bg-raised">
-    <div class="max-w-6xl mx-auto px-6 py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
-      <div class="col-span-2 md:col-span-1">
-        <a href="/" class="flex items-center gap-2.5 mb-4">
-          <img src="/logo-mark.svg" alt="" class="h-[22px] w-auto" />
-          <span class="text-[17px] font-bold tracking-tight">Tylix</span>
+  <footer class="border-t border-line">
+    <div class="tx-container py-14 grid grid-cols-2 md:grid-cols-6 gap-10">
+      <div class="col-span-2">
+        <a href="/" class="inline-flex items-center gap-2.5">
+          <img src="/logo-mark.svg" alt="" class="tx-logo h-[20px] w-auto" />
+          <span class="text-[16px] font-semibold tracking-[-0.02em]">Tylix</span>
         </a>
-        <p class="text-sm text-muted leading-relaxed max-w-xs">
-          Full-stack JavaScript with a reactive compiler, a generator-first CLI and one ORM.
+        <p class="mt-4 text-sm text-muted leading-relaxed max-w-xs">
+          The full-stack JavaScript framework with the server, the database and the tooling already wired together.
         </p>
+        <a href="/status" class="mt-5 inline-flex items-center gap-2 text-xs text-muted hover:text-ink transition-colors">
+          <span class="tx-dot"></span> System status
+        </a>
       </div>
 
 {{#each col in columns}}
       <div>
-        <h4 class="text-xs font-semibold uppercase tracking-wider text-ink mb-4">{{ col.title }}</h4>
+        <h3 class="text-[13px] font-semibold text-ink mb-4">{{ col.title }}</h3>
         <ul class="space-y-2.5">
 {{#each link in col.links}}
-          <li>
-            <a href="{{ link.href }}" class="text-sm text-muted hover:text-ink transition-colors">{{ link.label }}</a>
-          </li>
+          <li><a href="{{ link.href }}" class="text-sm text-muted hover:text-ink transition-colors">{{ link.label }}</a></li>
 {{/each}}
         </ul>
       </div>
@@ -69,8 +77,9 @@ template
     </div>
 
     <div class="border-t border-line">
-      <div class="max-w-6xl mx-auto px-6 py-5 text-xs text-muted">
-        © {{ year }} Tylix. Built with Tylix.
+      <div class="tx-container py-6 flex flex-wrap items-center justify-between gap-4 text-xs text-faint">
+        <p>© {{ year }} Tylix · Released under the MIT License.</p>
+        <a href="https://github.com/tylixjs" class="inline-flex items-center gap-1.5 hover:text-ink transition-colors" target="_blank" rel="noopener noreferrer"><IconGithub class="w-3.5 h-3.5" /> This site is built with Tylix</a>
       </div>
     </div>
   </footer>

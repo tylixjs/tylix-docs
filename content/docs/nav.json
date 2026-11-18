@@ -1,0 +1,54 @@
+[
+  {
+    "title": "Getting started",
+    "items": [
+      { "slug": "introduction", "title": "Introduction" },
+      { "slug": "installation", "title": "Installation" },
+      { "slug": "project-structure", "title": "Project structure" },
+      { "slug": "configuration", "title": "Configuration" },
+      { "slug": "upgrading", "title": "Upgrading from 1.x" }
+    ]
+  },
+  {
+    "title": "The .tyx language",
+    "items": [
+      { "slug": "pages", "title": "Pages" },
+      { "slug": "templates", "title": "Template syntax" },
+      { "slug": "components", "title": "Components" },
+      { "slug": "capabilities", "title": "Capabilities" },
+      { "slug": "routing", "title": "Routing & layouts" }
+    ]
+  },
+  {
+    "title": "Backend",
+    "items": [
+      { "slug": "api-routes", "title": "API routes & controllers" },
+      { "slug": "database", "title": "Database & ORM" },
+      { "slug": "migrations", "title": "Migrations" },
+      { "slug": "validation", "title": "Validation" },
+      { "slug": "authentication", "title": "Authentication" },
+      { "slug": "permissions", "title": "Roles & permissions", "badge": "New" },
+      { "slug": "background-jobs", "title": "Queues, schedules & channels" },
+      { "slug": "logging", "title": "Logging & observability" },
+      { "slug": "pdf", "title": "PDF documents" },
+      { "slug": "excel", "title": "Excel & CSV" }
+    ]
+  },
+  {
+    "title": "Tooling",
+    "items": [
+      { "slug": "cli", "title": "CLI" },
+      { "slug": "typed-api-client", "title": "Typed API client" },
+      { "slug": "editor-and-devtools", "title": "Editor & DevTools" },
+      { "slug": "plugins", "title": "Plugins" }
+    ]
+  },
+  {
+    "title": "Production",
+    "items": [
+      { "slug": "deployment", "title": "Deployment" },
+      { "slug": "pwa", "title": "Installable apps (PWA)", "badge": "New" },
+      { "slug": "contributing", "title": "Contributing" }
+    ]
+  }
+]

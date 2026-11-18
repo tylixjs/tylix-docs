@@ -1,0 +1,346 @@
+component DocumentsPlayground
+
+// Live demo for /documents: @tylix/pdf and @tylix/excel running in the
+// visitor's browser, loaded from /_tylix/pdf and /_tylix/excel. Nothing
+// is uploaded; files are made and read on the device.
+
+import { IconDocumentText, IconTable, IconDownload, IconEye, IconUpload, IconRefresh, IconPlus, IconX } from "tylix-icons"
+
+state
+  customer: "Ada Lovelace"
+  invoiceNo: "1042"
+  currency: "USD"
+  currencies: ["USD", "EUR", "GBP", "KES", "NGN", "ZAR"]
+  items: [
+    { name: "Design review", qty: 2, price: 450 },
+    { name: "Hosting, 12 months", qty: 1, price: 240 },
+    { name: "Support hours", qty: 6, price: 85 }
+  ]
+  busy: ""
+  error: ""
+  note: ""
+  previewUrl: ""
+  readRows: []
+  readColumns: []
+  readFrom: ""
+
+computed
+  total() {
+    return this.items.reduce((sum, it) => sum + (Number(it.qty) || 0) * (Number(it.price) || 0), 0)
+  }
+
+  totalText() {
+    return this.money(this.total)
+  }
+
+action
+  money(value) {
+    try {
+      return new Intl.NumberFormat("en", { style: "currency", currency: this.currency }).format(value)
+    } catch (err) {
+      return String(value)
+    }
+  }
+
+  setField(field, value) {
+    this[field] = value
+    this.stale()
+  }
+
+  setItem(index, field, value) {
+    const next = this.items.map((it, i) => (i is index ? { ...it, [field]: field is "name" ? value : Number(value) } : it))
+    this.items = next
+    this.stale()
+  }
+
+  addItem() {
+    this.items = [...this.items, { name: "New line", qty: 1, price: 100 }]
+    this.stale()
+  }
+
+  removeItem(index) {
+    this.items = this.items.filter((_, i) => i is not index)
+    this.stale()
+  }
+
+  // The preview shows an older invoice once the inputs change.
+  stale() {
+    if this.previewUrl {
+      URL.revokeObjectURL(this.previewUrl)
+      this.previewUrl = ""
+    }
+  }
+
+  async lib(name) {
+    // On window, so the modules load once per page view (not reactive state).
+    const holder = window as unknown as { __tylixDocLibs?: Record<string, Promise<any>> }
+    const cache = holder.__tylixDocLibs ?? (holder.__tylixDocLibs = {})
+    if not cache[name] {
+      const url = "/_tylix/" + name + "/index.js"
+      cache[name] = import(url)
+    }
+    return await cache[name]
+  }
+
+  rows() {
+    return this.items.map((it) => ({ item: it.name, qty: Number(it.qty) || 0, price: Number(it.price) || 0, total: (Number(it.qty) || 0) * (Number(it.price) || 0) }))
+  }
+
+  async run(label, work) {
+    if this.busy {
+      return null
+    }
+    this.busy = label
+    this.error = ""
+    this.note = ""
+    const started = performance.now()
+    try {
+      const done = await work()
+      this.note = (done ?? "Done") + " in " + Math.max(1, Math.round(performance.now() - started)) + " ms, on this device."
+    } catch (err) {
+      this.error = err?.message ?? String(err)
+    } finally {
+      this.busy = ""
+    }
+  }
+
+  async makePdf() {
+    const { createPdf } = await this.lib("pdf")
+    const rows = this.rows()
+    return createPdf({
+      title: "Invoice #" + this.invoiceNo,
+      author: "Tylix docs demo",
+      currency: this.currency,
+      locale: "en",
+      pageNumbers: true,
+      content: [
+        {
+          columns: [
+            { stack: [{ h1: "Invoice #" + this.invoiceNo }, { text: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }), style: "muted" }], width: "*" },
+            { qr: "https://tylix.dev/documents", size: 64, align: "right" }
+          ]
+        },
+        { spacer: 16 },
+        { text: ["Billed to ", { text: this.customer || "Someone", bold: true }] },
+        { spacer: 12 },
+        {
+          table: {
+            columns: [
+              { header: "Item", key: "item", width: "*" },
+              { header: "Qty", key: "qty", format: "integer" },
+              { header: "Price", key: "price", format: "currency", footer: "Total" },
+              { header: "Total", key: "total", format: "currency", footer: (all) => all.reduce((sum, r) => sum + r.total, 0) }
+            ],
+            rows: rows,
+            zebra: true,
+            emptyText: "No lines yet"
+          }
+        },
+        { spacer: 18 },
+        { text: "Made in your browser by @tylix/pdf. Nothing was uploaded.", style: "muted", size: 9 }
+      ]
+    })
+  }
+
+  async makeWorkbook() {
+    const { createWorkbook } = await this.lib("excel")
+    const workbook = createWorkbook({ title: "Invoice #" + this.invoiceNo, creator: "Tylix docs demo", currency: this.currency })
+    const sheet = workbook.addSheet("Invoice " + this.invoiceNo, {
+      columns: [
+        { header: "Item", key: "item" },
+        { header: "Qty", key: "qty", format: "integer", total: "sum" },
+        { header: "Price", key: "price", format: "currency" },
+        { header: "Total", key: "total", format: "currency", total: "sum" }
+      ],
+      rows: this.rows(),
+      tabColor: "#0034CA"
+    })
+    sheet.conditionalFormat("D2:D" + (this.items.length + 1), { type: "dataBar", color: "#60a5fa" })
+    return workbook
+  }
+
+  async previewPdf() {
+    await this.run("preview", async () => {
+      const pdf = await this.makePdf()
+      const blob = await pdf.toBlob()
+      this.stale()
+      this.previewUrl = URL.createObjectURL(blob)
+      return "PDF made (" + Math.round(blob.size / 1024 * 10) / 10 + " KB)"
+    })
+  }
+
+  async downloadPdf() {
+    await this.run("pdf", async () => {
+      const pdf = await this.makePdf()
+      await pdf.download("invoice-" + this.invoiceNo + ".pdf")
+      return "PDF downloaded"
+    })
+  }
+
+  async downloadXlsx() {
+    await this.run("xlsx", async () => {
+      const workbook = await this.makeWorkbook()
+      await workbook.download("invoice-" + this.invoiceNo + ".xlsx")
+      return "Workbook downloaded"
+    })
+  }
+
+  // Writes the workbook, then reads the bytes back: what an import sees.
+  async roundTrip() {
+    await this.run("roundtrip", async () => {
+      const workbook = await this.makeWorkbook()
+      const bytes = await workbook.toBuffer()
+      const { fromXlsx } = await this.lib("excel")
+      const rows = await fromXlsx(bytes)
+      this.show(rows, "the workbook above (" + Math.round(bytes.length / 1024 * 10) / 10 + " KB)")
+      return "Written and read back"
+    })
+  }
+
+  async openFile(event) {
+    const file = event.target.files?.[0]
+    if not file {
+      return null
+    }
+    await this.run("open", async () => {
+      const { fromXlsx } = await this.lib("excel")
+      const rows = await fromXlsx(file)
+      this.show(rows, file.name)
+      return "Read " + rows.length + (rows.length is 1 ? " row" : " rows")
+    })
+    event.target.value = ""
+  }
+
+  show(rows, from) {
+    this.readFrom = from
+    this.readColumns = rows.length > 0 ? Object.keys(rows[0]).slice(0, 6) : []
+    this.readRows = rows.slice(0, 8)
+  }
+
+  cell(value) {
+    if value instanceof Date {
+      return value.toISOString().slice(0, 10)
+    }
+    if value is null or value is undefined {
+      return ""
+    }
+    if typeof value is "object" {
+      return value.error ?? JSON.stringify(value)
+    }
+    return String(value)
+  }
+
+  typeOf(value) {
+    if value instanceof Date {
+      return "Date"
+    }
+    return value is null ? "null" : typeof value
+  }
+
+template
+<div class="grid lg:grid-cols-12 gap-8 items-start">
+  <div class="lg:col-span-5 tx-panel p-5 sm:p-6 min-w-0">
+    <div class="grid grid-cols-2 gap-3">
+      <label class="col-span-2 sm:col-span-1 text-xs font-medium text-muted">Billed to
+        <input type="text" value="{{ customer }}" oninput="{{ setField('customer', $event.target.value) }}" class="mt-1.5 w-full h-9 rounded-md border border-line bg-canvas px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/30" />
+      </label>
+      <label class="text-xs font-medium text-muted">Invoice no.
+        <input type="text" value="{{ invoiceNo }}" oninput="{{ setField('invoiceNo', $event.target.value) }}" class="mt-1.5 w-full h-9 rounded-md border border-line bg-canvas px-3 text-sm text-ink font-mono focus:outline-none focus:ring-2 focus:ring-brand/30" />
+      </label>
+      <label class="text-xs font-medium text-muted">Currency
+        <select onchange="{{ setField('currency', $event.target.value) }}" class="mt-1.5 w-full h-9 rounded-md border border-line bg-canvas px-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/30">
+{{#each c in currencies}}
+          <option value="{{ c }}" selected="{{ c is currency }}">{{ c }}</option>
+{{/each}}
+        </select>
+      </label>
+    </div>
+
+    <div class="mt-5">
+      <div class="grid grid-cols-[1fr_3.5rem_5.5rem_1.75rem] gap-2 text-[11px] font-medium uppercase tracking-[0.06em] text-faint px-0.5">
+        <span>Item</span><span>Qty</span><span>Price</span><span></span>
+      </div>
+{{#each it, i in items}}
+      <div class="mt-1.5 grid grid-cols-[1fr_3.5rem_5.5rem_1.75rem] gap-2 items-center">
+        <input type="text" aria-label="Item {{ i + 1 }}" value="{{ it.name }}" oninput="{{ setItem(i, 'name', $event.target.value) }}" class="min-w-0 h-9 rounded-md border border-line bg-canvas px-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/30" />
+        <input type="number" min="0" aria-label="Quantity {{ i + 1 }}" value="{{ it.qty }}" oninput="{{ setItem(i, 'qty', $event.target.value) }}" class="min-w-0 h-9 rounded-md border border-line bg-canvas px-2 text-sm text-ink tabular-nums focus:outline-none focus:ring-2 focus:ring-brand/30" />
+        <input type="number" min="0" step="0.01" aria-label="Price {{ i + 1 }}" value="{{ it.price }}" oninput="{{ setItem(i, 'price', $event.target.value) }}" class="min-w-0 h-9 rounded-md border border-line bg-canvas px-2 text-sm text-ink tabular-nums focus:outline-none focus:ring-2 focus:ring-brand/30" />
+        <button type="button" onclick="{{ removeItem(i) }}" aria-label="Remove line {{ i + 1 }}" class="tx-icon-btn w-7 h-7"><IconX class="w-3.5 h-3.5" /></button>
+      </div>
+{{/each}}
+      <div class="mt-3 flex items-center justify-between">
+        <button type="button" onclick="{{ addItem() }}" class="tx-btn tx-btn-ghost tx-btn-sm"><IconPlus class="w-4 h-4" /> Add a line</button>
+        <span class="text-sm text-muted">Total <span class="font-semibold text-ink tabular-nums">{{ totalText }}</span></span>
+      </div>
+    </div>
+
+    <div class="mt-6 pt-5 border-t border-line">
+      <p class="text-xs font-medium uppercase tracking-[0.06em] text-faint mb-2.5 inline-flex items-center gap-1.5"><IconDocumentText class="w-3.5 h-3.5" /> @tylix/pdf</p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="{{ previewPdf() }}" disabled="{{ busy is not '' }}" class="tx-btn tx-btn-primary tx-btn-sm"><IconEye class="w-4 h-4" /> {{ busy is "preview" ? "Making…" : "Preview PDF" }}</button>
+        <button type="button" onclick="{{ downloadPdf() }}" disabled="{{ busy is not '' }}" class="tx-btn tx-btn-outline tx-btn-sm"><IconDownload class="w-4 h-4" /> {{ busy is "pdf" ? "Making…" : "Download" }}</button>
+      </div>
+      <p class="text-xs font-medium uppercase tracking-[0.06em] text-faint mt-5 mb-2.5 inline-flex items-center gap-1.5"><IconTable class="w-3.5 h-3.5" /> @tylix/excel</p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="{{ downloadXlsx() }}" disabled="{{ busy is not '' }}" class="tx-btn tx-btn-primary tx-btn-sm"><IconDownload class="w-4 h-4" /> {{ busy is "xlsx" ? "Making…" : "Download .xlsx" }}</button>
+        <button type="button" onclick="{{ roundTrip() }}" disabled="{{ busy is not '' }}" class="tx-btn tx-btn-outline tx-btn-sm"><IconRefresh class="w-4 h-4" /> Write and read back</button>
+        <label class="tx-btn tx-btn-ghost tx-btn-sm cursor-pointer">
+          <IconUpload class="w-4 h-4" /> Open your .xlsx or .csv
+          <input type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onchange="{{ openFile($event) }}" class="sr-only" />
+        </label>
+      </div>
+{{#if note}}
+      <p role="status" class="mt-4 text-xs text-muted">{{ note }}</p>
+{{/if}}
+{{#if error}}
+      <p role="alert" class="mt-4 text-xs text-coral">{{ error }}</p>
+{{/if}}
+    </div>
+  </div>
+
+  <div class="lg:col-span-7 min-w-0 space-y-6">
+    <div class="tx-window overflow-hidden">
+      <div class="flex items-center gap-2 px-4 h-10 border-b border-line text-xs text-muted">
+        <IconDocumentText class="w-4 h-4" /> <span class="font-mono">invoice-{{ invoiceNo }}.pdf</span>
+      </div>
+{{#if previewUrl}}
+      <iframe src="{{ previewUrl }}" title="Invoice PDF preview" class="block w-full h-[30rem] bg-white"></iframe>
+{{#else}}
+      <div class="h-[30rem] flex flex-col items-center justify-center text-center px-8">
+        <IconDocumentText class="w-8 h-8 text-faint" />
+        <p class="mt-3 text-sm text-soft">Edit the invoice, then press <span class="font-medium text-ink">Preview PDF</span>.</p>
+        <p class="mt-1 text-xs text-muted">The PDF is drawn here by the same code that runs on a server. Some phone browsers only offer it as a download.</p>
+      </div>
+{{/if}}
+    </div>
+
+{{#if readFrom}}
+    <div class="tx-window overflow-hidden">
+      <div class="flex items-center gap-2 px-4 h-10 border-b border-line text-xs text-muted">
+        <IconTable class="w-4 h-4" /> <span class="truncate">fromXlsx({{ readFrom }})</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-muted border-b border-line">
+{{#each col in readColumns}}
+              <th class="px-4 py-2 font-medium whitespace-nowrap">{{ col }}</th>
+{{/each}}
+            </tr>
+          </thead>
+          <tbody>
+{{#each row in readRows}}
+            <tr class="border-b border-line last:border-0">
+{{#each col in readColumns}}
+              <td class="px-4 py-2 whitespace-nowrap text-ink">{{ cell(row[col]) }} <span class="ml-1 font-mono text-[10.5px] text-faint">{{ typeOf(row[col]) }}</span></td>
+{{/each}}
+            </tr>
+{{/each}}
+          </tbody>
+        </table>
+      </div>
+      <p class="px-4 py-2.5 text-xs text-muted border-t border-line">Rows come back as objects keyed by the header row, with numbers as numbers and dates as Date objects. First 8 rows, 6 columns shown.</p>
+    </div>
+{{/if}}
+  </div>
+</div>

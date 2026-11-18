@@ -1,25 +1,213 @@
 page Home
 
-import Hero from "./components/Hero"
-import InstallSnippet from "./components/InstallSnippet"
-import Stats from "./components/Stats"
-import FeatureGrid from "./components/FeatureGrid"
-import HowItWorks from "./components/HowItWorks"
-import LatestPosts from "./components/LatestPosts"
-import CTASection from "./components/CTASection"
+import CopyCommand from "./components/CopyCommand"
+import CodeShowcase from "./components/CodeShowcase"
+import FeatureCell from "./components/FeatureCell"
+import { IconArrowRight, IconBolt, IconLockClosed, IconDatabase, IconShieldCheck, IconBraces, IconQueue, IconSignal, IconMail, IconGauge, IconDeviceMobile, IconUserGroup, IconRocket, IconCheck, IconTerminal, IconCode, IconCpuChip, IconSearch, IconWand } from "tylix-icons"
 
-title "Tylix"
+title "Tylix · Build full-stack JavaScript applications"
 
-uses
-  Auth
+state
+  frontends: ["Tylix", "React", "Vue", "Svelte", "Angular"]
+  databases: ["SQLite", "PostgreSQL", "MySQL", "MariaDB", "CockroachDB", "MongoDB"]
+  generated: [
+    { path: "app/models/Invoice.ts", note: "model" },
+    { path: "database/migrations/…_create_invoices_table.ts", note: "migration" },
+    { path: "app/validators/InvoiceValidator.ts", note: "shared rules" },
+    { path: "app/controllers/InvoiceController.ts", note: "CRUD, paginated" }
+  ]
+  routes: [
+    { method: "GET", path: "/api/invoices" },
+    { method: "POST", path: "/api/invoices" },
+    { method: "GET", path: "/api/invoices/:id" },
+    { method: "PUT", path: "/api/invoices/:id" },
+    { method: "DELETE", path: "/api/invoices/:id" }
+  ]
 
 template
   <div>
-    <Hero loggedIn="{{ Auth.user }}" hasAuth="{{ true }}" hasPosts="{{ true }}" />
-    <Stats />
-    <FeatureGrid />
-    <InstallSnippet />
-    <HowItWorks />
-    <LatestPosts />
-    <CTASection loggedIn="{{ Auth.user }}" hasAuth="{{ true }}" />
+    <section class="relative overflow-hidden border-b border-line">
+      <div class="tx-dots absolute inset-0 -z-0 opacity-70" aria-hidden="true"></div>
+      <div class="relative tx-container pt-16 sm:pt-24 pb-20 sm:pb-24 grid lg:grid-cols-12 gap-14 lg:gap-10 items-center">
+        <div class="lg:col-span-5">
+          <a href="/whats-new" class="inline-flex items-center gap-2 h-8 pl-1.5 pr-3 rounded-full border border-line bg-canvas text-[13px] text-soft hover:border-line-strong transition-colors">
+            <span class="tx-badge h-5 border-0 bg-brand-soft text-brand dark:text-link">2.1</span>
+            Roles, permissions &amp; installable apps
+            <IconArrowRight class="w-3.5 h-3.5 text-faint" />
+          </a>
+
+          <h1 class="tx-display mt-7 text-ink">Full-stack JavaScript, already wired together.</h1>
+
+          <p class="tx-lead mt-6 max-w-[34rem]">
+            Reactive <code class="font-mono text-[0.9em] text-ink">.tyx</code> pages, or React, Vue, Svelte and Angular, on a server with auth, an ORM, queues, mail and observability built in. Start with one command. Grow with one CLI.
+          </p>
+
+          <div class="mt-9 flex flex-wrap items-center gap-3">
+            <a href="/docs/installation" class="tx-btn tx-btn-primary">
+              Get started <IconArrowRight class="w-4 h-4" />
+            </a>
+            <a href="/docs" class="tx-btn tx-btn-outline">Read the docs</a>
+          </div>
+
+          <div class="mt-6">
+            <CopyCommand command="npm create tylix@latest" />
+          </div>
+        </div>
+
+        <div class="lg:col-span-7 min-w-0">
+          <CodeShowcase />
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-line">
+      <div class="tx-container py-8 grid lg:grid-cols-2 gap-6 lg:gap-10">
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span class="text-xs font-medium text-faint uppercase tracking-[0.08em] w-full sm:w-auto">Frontends</span>
+{{#each name in frontends}}
+          <span class="text-[15px] font-medium text-soft">{{ name }}</span>
+{{/each}}
+        </div>
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2 lg:justify-end">
+          <span class="text-xs font-medium text-faint uppercase tracking-[0.08em] w-full sm:w-auto">Databases</span>
+{{#each name in databases}}
+          <span class="text-[15px] font-medium text-soft">{{ name }}</span>
+{{/each}}
+        </div>
+      </div>
+    </section>
+
+    <section class="tx-container py-24 sm:py-28">
+      <div class="max-w-2xl">
+        <p class="tx-eyebrow">In the box</p>
+        <h2 class="tx-h2 mt-4 text-ink">Everything a product needs, before you install anything else.</h2>
+        <p class="tx-lead mt-5">Each piece is designed to work with the others, so there's no glue code, no adapter packages, and no "which auth library?" week.</p>
+      </div>
+
+      <div class="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 border-l border-t border-line rounded-sm">
+        <FeatureCell title="Reactive compiler" text="Pages compile to direct DOM updates with no virtual DOM, and typecheck end to end in TypeScript projects." href="/docs/pages"><IconBolt class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Authentication" text="Login, registration, Google and GitHub, email verification and password reset, on sessions you can revoke." href="/auth"><IconLockClosed class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="One ORM, six databases" text="SQLite to CockroachDB and MongoDB, with migrations, observers, traits and pagination." href="/docs/database"><IconDatabase class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Validation, once" text="The same rules guard the API and show errors in the browser before the request is sent." href="/docs/validation"><IconShieldCheck class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Typed API client" text="Your routes become a typed client. A renamed field is a type error, not a production bug." href="/docs/typed-api-client"><IconBraces class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Queues & schedules" text="Jobs with retries, backoff and delays. Scheduled tasks. Atomic claims across workers." href="/docs/background-jobs"><IconQueue class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Live channels" text="broadcast() from anywhere on the server, received in every connected browser." href="/docs/background-jobs#channels"><IconSignal class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Roles & permissions" text="Wildcards, inheritance, denies that always win, teams and expiring grants, in the server and the page." href="/permissions"><IconUserGroup class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Mail, PDF & Excel" text="Seven mail transports, PDF documents with tables, charts and QR codes, and Excel files, in any JS runtime." href="/documents"><IconMail class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Observability" text="Log channels, request ids, slow-query warnings, Prometheus metrics and health checks." href="/docs/logging"><IconGauge class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Installable apps" text="Any app becomes an offline-ready PWA with an install and update prompt, for every frontend." href="/docs/pwa"><IconDeviceMobile class="w-[18px] h-[18px]" /></FeatureCell>
+        <FeatureCell title="Deploy anywhere" text="Docker, Fly, Render, Railway and PM2, or a static export to Netlify, Vercel and Pages." href="/docs/deployment"><IconRocket class="w-[18px] h-[18px]" /></FeatureCell>
+      </div>
+    </section>
+
+    <section class="border-y border-line bg-raised">
+      <div class="tx-container py-24 sm:py-28 grid lg:grid-cols-2 gap-14 items-center">
+        <div>
+          <p class="tx-eyebrow">Generators</p>
+          <h2 class="tx-h2 mt-4 text-ink">From an idea to a working API in one command.</h2>
+          <p class="tx-lead mt-5 max-w-xl">
+            <code class="font-mono text-[0.9em] text-ink">make:feature</code> writes the model, the migration, the validator and a paginated CRUD API, and it works the moment the migration runs. Pages, components, jobs, observers, traits, channels and mail have generators too.
+          </p>
+          <a href="/docs/cli#make-things" class="tx-link inline-flex items-center gap-1.5 mt-7 text-[15px]">Every generator <IconArrowRight class="w-4 h-4" /></a>
+        </div>
+
+        <div class="tx-window min-w-0">
+          <div class="flex items-center gap-2 h-11 px-4 border-b border-line text-xs font-mono text-muted">
+            <IconTerminal class="w-3.5 h-3.5" /> Terminal
+          </div>
+          <div class="p-5 sm:p-6 font-mono text-[13px] leading-[1.75] overflow-x-auto">
+            <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix make:feature Invoice title:string total:number</p>
+            <div class="mt-4 space-y-0.5">
+{{#each file in generated}}
+              <p class="flex items-baseline gap-3 whitespace-nowrap"><IconCheck class="w-3.5 h-3.5 text-mint shrink-0 translate-y-0.5" /><span class="text-soft">{{ file.path }}</span><span class="text-faint hidden sm:inline">{{ file.note }}</span></p>
+{{/each}}
+            </div>
+            <div class="mt-4 pt-4 border-t border-line space-y-0.5">
+{{#each r in routes}}
+              <p class="whitespace-nowrap"><span class="inline-block w-16 text-brand dark:text-link">{{ r.method }}</span><span class="text-soft">{{ r.path }}</span></p>
+{{/each}}
+            </div>
+            <p class="mt-4 whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix migrate</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tx-container py-24 sm:py-28">
+      <div class="grid lg:grid-cols-3 gap-12 lg:gap-16">
+        <div>
+          <p class="tx-eyebrow">Production</p>
+          <h2 class="tx-h2 mt-4 text-ink">Ready for real traffic on day one.</h2>
+          <p class="tx-lead mt-5">The things you'd add the week before launch are already on.</p>
+        </div>
+        <div class="lg:col-span-2 grid sm:grid-cols-2 gap-px bg-line border border-line rounded-xl overflow-hidden">
+          <div class="bg-canvas p-7">
+            <IconCpuChip class="w-5 h-5 text-muted" />
+            <h3 class="mt-4 font-semibold text-ink">One process per core</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Workers share the port and crashed ones are replaced. A shared store makes many servers act as one.</p>
+            <p class="mt-4 font-mono text-[12.5px] text-soft">tylix start --workers auto</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconGauge class="w-5 h-5 text-muted" />
+            <h3 class="mt-4 font-semibold text-ink">Health and metrics</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Liveness and readiness checks for load balancers, plus Prometheus metrics behind a token.</p>
+            <p class="mt-4 font-mono text-[12.5px] text-soft">/health · /ready · /metrics</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconSearch class="w-5 h-5 text-muted" />
+            <h3 class="mt-4 font-semibold text-ink">Every request traceable</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">An id on every request and every log line it writes, with warnings for slow requests and slow queries.</p>
+            <p class="mt-4 font-mono text-[12.5px] text-soft">X-Request-Id: 4d36…</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconShieldCheck class="w-5 h-5 text-muted" />
+            <h3 class="mt-4 font-semibold text-ink">Secure by default</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Security headers, CSP, cross-site write protection, hardened cookies and brute-force limits.</p>
+            <p class="mt-4 font-mono text-[12.5px] text-soft">CSP_MODE=enforce</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-line">
+      <div class="tx-container py-24 sm:py-28">
+        <div class="max-w-2xl">
+          <p class="tx-eyebrow">Tooling</p>
+          <h2 class="tx-h2 mt-4 text-ink">An editor and a debugger that know your app.</h2>
+        </div>
+        <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <a href="/docs/editor-and-devtools#vs-code" class="tx-panel p-6 hover:border-line-strong transition-colors">
+            <IconCode class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 font-semibold text-ink">VS Code &amp; LSP</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Errors as you type, type checking, completion, hover and go to definition for .tyx.</p>
+          </a>
+          <a href="/docs/editor-and-devtools#tylix-devtools" class="tx-panel p-6 hover:border-line-strong transition-colors">
+            <IconCpuChip class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 font-semibold text-ink">DevTools panel</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Inspect and edit live state, run actions and highlight components, in Chrome and Firefox.</p>
+          </a>
+          <a href="/docs/cli#tylix-check" class="tx-panel p-6 hover:border-line-strong transition-colors">
+            <IconCheck class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 font-semibold text-ink">tylix check</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Every problem, with file, line and column, as text, JSON or pull-request annotations.</p>
+          </a>
+          <a href="/docs/cli" class="tx-panel p-6 hover:border-line-strong transition-colors">
+            <IconWand class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 font-semibold text-ink">doctor &amp; tinker</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">See every setting and where it came from. Query your models from a REPL.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-line bg-raised">
+      <div class="tx-container py-24 sm:py-32 text-center">
+        <h2 class="tx-h2 text-ink max-w-2xl mx-auto">Start building in under a minute.</h2>
+        <p class="tx-lead mt-5 max-w-xl mx-auto">Pick a frontend and a database. Tylix writes the rest, including authentication.</p>
+        <div class="mt-9 flex flex-wrap justify-center items-center gap-3">
+          <CopyCommand command="npm create tylix@latest" />
+          <a href="/docs/installation" class="tx-btn tx-btn-primary">Read the guide <IconArrowRight class="w-4 h-4" /></a>
+        </div>
+      </div>
+    </section>
   </div>

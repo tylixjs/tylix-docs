@@ -1,0 +1,77 @@
+capability Site
+
+// Site-wide behaviour shared by the header, the search dialog and the docs:
+//   Site.searchOpen, Site.openSearch(), Site.closeSearch()
+//   ⌘K / Ctrl K and "/" open search; Esc closes it.
+//   Copy buttons on every highlighted code block ([data-copy]).
+
+state
+  searchOpen: false
+
+action
+  openSearch() {
+    this.searchOpen = true
+    setTimeout(() => {
+      const input = document.getElementById("tx-search-input")
+      if input {
+        input.focus()
+      }
+    }, 30)
+  }
+
+  closeSearch() {
+    this.searchOpen = false
+  }
+
+  async copyFrom(button) {
+    const figure = button.closest("figure")
+    if not figure {
+      return null
+    }
+    const source = figure.querySelector(".doc-code-src")
+    const text = source ? source.value : figure.innerText
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch (err) {
+      return null
+    }
+    const label = button.querySelector("span")
+    button.classList.add("is-done")
+    if label {
+      label.textContent = "Copied"
+    }
+    setTimeout(() => {
+      button.classList.remove("is-done")
+      if label {
+        label.textContent = "Copy"
+      }
+    }, 1600)
+  }
+
+init
+  async {
+    document.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase()
+      const typing = event.target.closest("input, textarea, select, [contenteditable]")
+      if (event.metaKey or event.ctrlKey) and key is "k" {
+        event.preventDefault()
+        if this.searchOpen {
+          this.closeSearch()
+        } else {
+          this.openSearch()
+        }
+      } else if key is "/" and not typing and not this.searchOpen {
+        event.preventDefault()
+        this.openSearch()
+      } else if key is "escape" and this.searchOpen {
+        this.closeSearch()
+      }
+    })
+
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-copy]")
+      if button {
+        this.copyFrom(button)
+      }
+    })
+  }

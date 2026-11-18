@@ -1,0 +1,8 @@
+page DocsHome
+
+import DocsView from "../components/DocsView"
+
+title "Documentation · Tylix"
+
+template
+  <DocsView slug="introduction" />

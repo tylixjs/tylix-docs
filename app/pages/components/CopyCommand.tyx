@@ -1,0 +1,32 @@
+component CopyCommand
+
+import { IconCheck, IconCopy } from "tylix-icons"
+
+props
+  command: string
+
+state
+  copied: false
+
+action
+  async copy() {
+    try {
+      await navigator.clipboard.writeText(this.command)
+    } catch (err) {
+      return null
+    }
+    this.copied = true
+    setTimeout(() => { this.copied = false }, 1600)
+  }
+
+template
+  <div class="tx-install">
+    <span><span class="tx-prompt">$ </span>{{ command }}</span>
+    <button type="button" onclick="{{ copy() }}" class="tx-icon-btn w-8 h-8 rounded-full" aria-label="Copy command">
+{{#if copied}}
+      <IconCheck class="w-4 h-4 text-mint" />
+{{#else}}
+      <IconCopy class="w-4 h-4" />
+{{/if}}
+    </button>
+  </div>

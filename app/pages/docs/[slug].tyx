@@ -1,0 +1,11 @@
+page DocsPage
+
+import DocsView from "../components/DocsView"
+
+title "Tylix Docs"
+
+props
+  slug: string
+
+template
+  <DocsView slug="{{ slug }}" />

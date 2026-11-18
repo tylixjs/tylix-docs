@@ -1,0 +1,119 @@
+page Changelog
+
+// Releases come from the Ashmif Hub (HUB_URL, product HUB_PRODUCT) through
+// /api/site/changelog. Edit them in the Hub, not here.
+
+title "Changelog · Tylix"
+
+state
+  releases: []
+  loading: true
+  error: ""
+  stale: false
+  filter: "all"
+  categories: [
+    { key: "all", label: "All" },
+    { key: "added", label: "Added" },
+    { key: "improved", label: "Improved" },
+    { key: "fixed", label: "Fixed" },
+    { key: "security", label: "Security" },
+    { key: "breaking", label: "Breaking" }
+  ]
+
+computed
+  shown() {
+    if this.filter is "all" {
+      return this.releases
+    }
+    return this.releases.filter(r => r.category is this.filter)
+  }
+
+action
+  formatDate(value) {
+    if not value {
+      return ""
+    }
+    return new Date(value).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+  }
+
+  countOf(key) {
+    if key is "all" {
+      return this.releases.length
+    }
+    return this.releases.filter(r => r.category is key).length
+  }
+
+  chipClass(key) {
+    const base = "h-8 px-3 rounded-full text-[13px] font-medium border transition-colors "
+    if key is this.filter {
+      return base + "bg-invert text-canvas border-invert"
+    }
+    return base + "border-line text-soft hover:border-line-strong"
+  }
+
+onMount
+  async {
+    const result = await useApi("/api/site/changelog")
+    if result.ok {
+      this.releases = result.data.data
+      this.stale = result.data.stale
+    } else {
+      this.error = result.error ?? "The changelog is unavailable right now."
+    }
+    this.loading = false
+  }
+
+template
+  <div class="tx-container py-16 sm:py-20">
+    <header class="max-w-2xl">
+      <p class="tx-eyebrow">Changelog</p>
+      <h1 class="tx-h2 mt-4 text-ink">What's new in Tylix</h1>
+      <p class="tx-lead mt-4">New features, improvements and fixes, release by release. Tylix follows semantic versioning, so 2.x never breaks your app.</p>
+    </header>
+
+{{#if releases.length > 0}}
+    <div class="mt-10 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+{{#each c in categories}}
+{{#if c.key is "all" or countOf(c.key) > 0}}
+      <button type="button" class="{{ chipClass(c.key) }}" onclick="{{ filter = c.key }}" aria-pressed="{{ c.key is filter }}">
+        {{ c.label }} <span class="opacity-60 ml-0.5">{{ countOf(c.key) }}</span>
+      </button>
+{{/if}}
+{{/each}}
+    </div>
+{{/if}}
+
+{{#if stale}}
+    <p class="mt-6 text-sm text-peach">Showing the last saved copy. The release feed couldn't be reached just now.</p>
+{{/if}}
+
+    <div class="mt-12 border-t border-line">
+{{#if loading}}
+      <div class="py-12 grid md:grid-cols-[12rem_1fr] gap-6" aria-busy="true">
+        <div class="tx-skel w-24"></div>
+        <div class="space-y-3"><div class="tx-skel h-6 w-1/2"></div><div class="tx-skel w-full"></div><div class="tx-skel w-4/5"></div></div>
+      </div>
+{{#else if error}}
+      <div class="py-16 text-center">
+        <p class="font-medium text-ink">{{ error }}</p>
+        <p class="mt-2 text-sm text-muted">Release notes are also on <a class="tx-link" href="https://github.com/tylixjs">GitHub</a>.</p>
+      </div>
+{{#else}}
+{{#each r in shown}}
+      <article class="py-12 border-b border-line grid md:grid-cols-[12rem_1fr] gap-4 md:gap-10" id="{{ `v${r.version}` }}">
+        <div class="md:sticky md:top-24 self-start">
+          <a href="{{ `#v${r.version}` }}" class="font-mono text-[15px] font-medium text-ink hover:text-brand dark:hover:text-link">v{{ r.version }}</a>
+          <p class="mt-1 text-sm text-muted"><time datetime="{{ r.published_at }}">{{ formatDate(r.published_at) }}</time></p>
+        </div>
+        <div class="min-w-0 max-w-[46rem]">
+          <span class="tx-chip" class:is-added="{{ r.category is 'added' }}" class:is-improved="{{ r.category is 'improved' }}" class:is-fixed="{{ r.category is 'fixed' }}" class:is-security="{{ r.category is 'security' }}" class:is-breaking="{{ r.category is 'breaking' }}">{{ r.category }}</span>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-0.025em] text-ink">{{ r.title }}</h2>
+          <div class="doc mt-5">{{@html r.html}}</div>
+        </div>
+      </article>
+{{#else}}
+      <p class="py-16 text-center text-muted">No releases in this category yet.</p>
+{{/each}}
+{{/if}}
+    </div>
+  </div>

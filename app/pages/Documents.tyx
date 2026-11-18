@@ -1,0 +1,222 @@
+page DocumentsPage
+
+import CopyCommand from "./components/CopyCommand"
+import SnippetWindow from "./components/SnippetWindow"
+import DocumentsPlayground from "./components/DocumentsPlayground"
+import { IconArrowRight, IconDocumentText, IconTable, IconQrcode, IconChartLine, IconLanguage, IconCode, IconPrinter, IconFilter, IconShieldCheck, IconBolt, IconUpload, IconMail, IconPhotograph, IconListChecks } from "tylix-icons"
+
+title "PDF & Excel · Tylix"
+
+state
+  pdfTabs: [
+    { key: "pdf-invoice", label: "InvoicePdf.js" },
+    { key: "pdf-route", label: "routes.js" }
+  ]
+  excelTabs: [
+    { key: "excel-report", label: "OrdersExport.js" },
+    { key: "excel-read", label: "import.js" }
+  ]
+  runtimes: ["Node", "Bun", "Deno", "Cloudflare Workers", "Edge", "The browser"]
+  pdfOut: ["toBuffer()", "save()", "send(res)", "toResponse()", "toBlob()", "download()", "open()", "toDataUrl()"]
+  excelOut: ["toBuffer()", "save()", "send(res)", "toResponse()", "toBlob()", "download()", "toCsv()"]
+
+template
+  <div>
+    <section class="relative overflow-hidden border-b border-line">
+      <div class="tx-dots absolute inset-0 -z-0 opacity-70" aria-hidden="true"></div>
+      <div class="relative tx-container pt-16 sm:pt-24 pb-20 sm:pb-24 max-w-3xl">
+        <p class="inline-flex items-center gap-2 font-mono text-[13px] text-muted"><IconDocumentText class="w-4 h-4 text-brand dark:text-link" /> @tylix/pdf · <IconTable class="w-4 h-4 text-brand dark:text-link" /> @tylix/excel</p>
+        <h1 class="tx-display mt-6 text-ink">Invoices, reports and exports from the objects you already have.</h1>
+        <p class="tx-lead mt-6 max-w-[40rem]">
+          Describe a PDF or a spreadsheet as plain JavaScript. Pages break, tables repeat their headers, columns size themselves and formats follow your locale. Both packages have no dependencies and run in any JavaScript runtime.
+        </p>
+        <div class="mt-9 flex flex-wrap items-center gap-3">
+          <a href="#try" class="tx-btn tx-btn-primary">Try it live</a>
+          <a href="#pdf" class="tx-btn tx-btn-outline">PDF</a>
+          <a href="#excel" class="tx-btn tx-btn-outline">Excel &amp; CSV</a>
+        </div>
+        <div class="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span class="text-xs font-medium text-faint uppercase tracking-[0.08em] w-full sm:w-auto">Runs in</span>
+{{#each name in runtimes}}
+          <span class="text-[15px] font-medium text-soft">{{ name }}</span>
+{{/each}}
+        </div>
+      </div>
+    </section>
+
+    <section id="try" class="border-b border-line bg-raised scroll-mt-20">
+      <div class="tx-container py-20 sm:py-24">
+        <div class="max-w-2xl mb-10">
+          <p class="tx-eyebrow">Try it live</p>
+          <h2 class="tx-h2 mt-4 text-ink">Make an invoice PDF and a workbook, right here.</h2>
+          <p class="tx-lead mt-5">Both packages run in your browser too. Edit the lines, then preview the PDF, download the .xlsx, or open a spreadsheet of your own and see the objects it reads as. Nothing leaves your device.</p>
+        </div>
+        <DocumentsPlayground />
+      </div>
+    </section>
+
+    <section id="pdf" class="tx-container py-24 sm:py-28 scroll-mt-20">
+      <div class="grid lg:grid-cols-12 gap-14 lg:gap-10 items-start">
+        <div class="lg:col-span-5">
+          <p class="tx-eyebrow">@tylix/pdf</p>
+          <h2 class="tx-h2 mt-4 text-ink">Objects in, PDF out.</h2>
+          <p class="tx-lead mt-5">Pass your rows to a table as they are. Columns pick fields by key and format currency, dates and percentages. Text wraps and flows, headings stay with their paragraph, and pages are numbered.</p>
+          <div class="mt-8 flex flex-wrap items-center gap-3">
+            <a href="/docs/pdf" class="tx-btn tx-btn-ink tx-btn-sm">PDF docs <IconArrowRight class="w-4 h-4" /></a>
+            <CopyCommand command="npm install @tylix/pdf" />
+          </div>
+        </div>
+        <div class="lg:col-span-7 min-w-0">
+          <SnippetWindow tabs="{{ pdfTabs }}" />
+        </div>
+      </div>
+
+      <div class="mt-16 grid sm:grid-cols-2 lg:grid-cols-4 border-l border-t border-line rounded-sm">
+        <div class="p-7 border-r border-b border-line">
+          <IconTable class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 text-[15px] font-semibold text-ink">Tables that span pages</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Headers repeat, tall rows split, footers total. Nested keys, column spans and any content in a cell.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <IconChartLine class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 text-[15px] font-semibold text-ink">SVG and charts</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">SVG and every @tylix/charts type, drawn as vectors that stay sharp at any zoom.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <IconQrcode class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 text-[15px] font-semibold text-ink">QR codes and barcodes</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">QR with any text, Code 128, EAN-13, UPC-A, EAN-8 and Code 39.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <IconLanguage class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 text-[15px] font-semibold text-ink">Unicode fonts</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Embed TrueType fonts, subset to what you use, with fallbacks for CJK, Greek and Cyrillic. Text stays searchable.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <IconCode class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 text-[15px] font-semibold text-ink">HTML too</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Render an email template or CMS content as a PDF, with inline styles and your named styles.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <IconListChecks class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 text-[15px] font-semibold text-ink">Contents and bookmarks</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Headings become bookmarks. A clickable table of contents with page numbers is one node.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <IconPrinter class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 text-[15px] font-semibold text-ink">Pages</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">A4 to Tabloid or any size, landscape sections, headers, footers, backgrounds and watermarks.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <IconPhotograph class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 text-[15px] font-semibold text-ink">Images and drawing</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">JPEG and PNG with transparency, stored once however often they're used, plus a canvas-like painter.</p>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-wrap items-center gap-2">
+        <span class="text-xs font-medium text-faint uppercase tracking-[0.08em] mr-2">Output</span>
+{{#each o in pdfOut}}
+        <span class="inline-flex items-center h-7 px-2.5 rounded-md border border-line bg-raised font-mono text-[12.5px] text-soft">{{ o }}</span>
+{{/each}}
+      </div>
+    </section>
+
+    <section id="excel" class="border-y border-line bg-raised scroll-mt-20">
+      <div class="tx-container py-24 sm:py-28">
+        <div class="grid lg:grid-cols-12 gap-14 lg:gap-10 items-start">
+          <div class="lg:col-span-5">
+            <p class="tx-eyebrow">@tylix/excel</p>
+            <h2 class="tx-h2 mt-4 text-ink">Spreadsheets people can actually use.</h2>
+            <p class="tx-lead mt-5">One line writes a styled .xlsx: bold headers, a frozen header row with filters, fitted columns and real Excel dates. One line reads a workbook back into objects with their types.</p>
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <a href="/docs/excel" class="tx-btn tx-btn-ink tx-btn-sm">Excel docs <IconArrowRight class="w-4 h-4" /></a>
+              <CopyCommand command="npm install @tylix/excel" />
+            </div>
+          </div>
+          <div class="lg:col-span-7 min-w-0">
+            <SnippetWindow tabs="{{ excelTabs }}" />
+          </div>
+        </div>
+
+        <div class="mt-16 grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-line border border-line rounded-xl overflow-hidden">
+          <div class="bg-canvas p-7">
+            <IconTable class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 text-[15px] font-semibold text-ink">Real reports</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Totals rows, formulas, Excel tables, merged cells, links, images and several sheets.</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconFilter class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 text-[15px] font-semibold text-ink">Dropdowns and highlights</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Validation lists and ranges, data bars, color scales, duplicates and highlight rules.</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconUpload class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 text-[15px] font-semibold text-ink">Imports</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">.xlsx or .csv from a path, URL, bytes or Blob. Dates become Date objects and formulas give their last result.</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconShieldCheck class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 text-[15px] font-semibold text-ink">Safe CSV</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Formula injection is neutralized by default. Parsing handles quotes, newlines, BOMs and semicolon files.</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconBolt class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 text-[15px] font-semibold text-ink">Fast enough for big exports</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">100,000 rows × 6 columns written in about 2.5 s and read back in under 2 s on a laptop.</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconPrinter class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 text-[15px] font-semibold text-ink">Print setup</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Landscape, fit to width, repeated headers and page footers, ready for the printer.</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconCode class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 text-[15px] font-semibold text-ink">Named formats</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">currency, percent and date instead of format codes, in USD, EUR, KES, NGN, ZAR and more.</p>
+          </div>
+          <div class="bg-canvas p-7">
+            <IconMail class="w-5 h-5 text-brand dark:text-link" />
+            <h3 class="mt-4 text-[15px] font-semibold text-ink">Mail attachments</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">Pass a workbook or a PDF as an attachment's content and @tylix/mail renders it.</p>
+          </div>
+        </div>
+
+        <div class="mt-10 flex flex-wrap items-center gap-2">
+          <span class="text-xs font-medium text-faint uppercase tracking-[0.08em] mr-2">Output</span>
+{{#each o in excelOut}}
+          <span class="inline-flex items-center h-7 px-2.5 rounded-md border border-line bg-canvas font-mono text-[12.5px] text-soft">{{ o }}</span>
+{{/each}}
+        </div>
+      </div>
+    </section>
+
+    <section class="tx-container py-24 sm:py-28 grid lg:grid-cols-2 gap-14 items-center">
+      <div>
+        <p class="tx-eyebrow">In a Tylix app</p>
+        <h2 class="tx-h2 mt-4 text-ink">A generator for each, and a download in one line.</h2>
+        <p class="tx-lead mt-5 max-w-xl"><code class="font-mono text-[0.9em] text-ink">res.download()</code> sends a PDF or a workbook with the right headers, non-ASCII file names intact. In the browser, <code class="font-mono text-[0.9em] text-ink">.tyx</code> pages import both from <code class="font-mono text-[0.9em] text-ink">/_tylix/pdf</code> and <code class="font-mono text-[0.9em] text-ink">/_tylix/excel</code>.</p>
+      </div>
+      <div class="tx-window min-w-0">
+        <div class="p-5 sm:p-6 font-mono text-[13px] leading-[1.75] overflow-x-auto">
+          <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix make:pdf Invoice</p>
+          <p class="whitespace-nowrap text-soft">  app/pdfs/InvoicePdf.js</p>
+          <p class="mt-3 whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix make:export Orders</p>
+          <p class="whitespace-nowrap text-soft">  app/exports/OrdersExport.js</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-line">
+      <div class="tx-container py-16 grid md:grid-cols-2 gap-6 text-sm text-muted">
+        <div class="tx-panel p-6">
+          <h3 class="font-semibold text-ink">PDF limits</h3>
+          <p class="mt-2 leading-relaxed">Arabic, Hebrew and Indic scripts need shaping that isn't done yet. It writes PDFs; it doesn't read, merge, fill or encrypt existing ones.</p>
+        </div>
+        <div class="tx-panel p-6">
+          <h3 class="font-semibold text-ink">Excel limits</h3>
+          <p class="mt-2 leading-relaxed">Formulas are calculated when the file is opened, not when it's written. No charts, pivot tables, comments or .xls. Reading keeps values, not styles.</p>
+        </div>
+      </div>
+    </section>
+  </div>

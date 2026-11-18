@@ -1,0 +1,155 @@
+component SearchDialog
+
+import { IconSearch, IconDocumentText, IconHash, IconCornerDownLeft } from "tylix-icons"
+
+uses
+  Site
+
+state
+  query: ""
+  results: []
+  active: 0
+  loading: false
+  searched: false
+  timer: null
+  seq: 0
+
+computed
+  suggestions() {
+    return [
+      { slug: "", href: "/whats-new", anchor: "", page: "What's new in 2.1", heading: "", section: "Release notes", snippet: "Roles and permissions, installable apps and auth in every new app." },
+      { slug: "installation", anchor: "", page: "Installation", heading: "", section: "Getting started", snippet: "Create an app with npm create tylix@latest." },
+      { slug: "pages", anchor: "", page: "Pages", heading: "", section: "The .tyx language", snippet: "state, computed, action, onMount and template." },
+      { slug: "database", anchor: "", page: "Database & ORM", heading: "", section: "Backend", snippet: "Models, queries and six database drivers." },
+      { slug: "cli", anchor: "", page: "CLI", heading: "", section: "Tooling", snippet: "Every tylix command." }
+    ]
+  }
+
+  shown() {
+    return this.query.trim() ? this.results : this.suggestions
+  }
+
+action
+  // Docs pages live under /docs; product pages (/auth, /whats-new…) carry their own href.
+  hrefOf(hit) {
+    const base = hit.href ?? `/docs/${hit.slug}`
+    return hit.anchor ? `${base}#${hit.anchor}` : base
+  }
+
+  onInput(event) {
+    this.query = event.target.value
+    this.active = 0
+    clearTimeout(this.timer)
+    if not this.query.trim() {
+      this.results = []
+      this.searched = false
+      this.loading = false
+      return null
+    }
+    this.loading = true
+    this.timer = setTimeout(() => this.run(), 120)
+  }
+
+  async run() {
+    this.seq = this.seq + 1
+    const mine = this.seq
+    const result = await useApi(`/api/docs/search?q=${encodeURIComponent(this.query.trim())}`)
+    if mine is not this.seq {
+      return null
+    }
+    this.results = result.ok ? result.data.data : []
+    this.loading = false
+    this.searched = true
+  }
+
+  move(step) {
+    const count = this.shown.length
+    if count is 0 {
+      return null
+    }
+    this.active = (this.active + step + count) % count
+    setTimeout(() => {
+      const el = document.querySelector(".tx-hit.is-active")
+      if el {
+        el.scrollIntoView({ block: "nearest" })
+      }
+    }, 0)
+  }
+
+  go() {
+    const hit = this.shown[this.active]
+    if hit {
+      this.close()
+      window.location.href = this.hrefOf(hit)
+    }
+  }
+
+  close() {
+    Site.closeSearch()
+    this.query = ""
+    this.results = []
+    this.searched = false
+    this.active = 0
+  }
+
+template
+{{#if Site.searchOpen}}
+  <div class="tx-overlay" onclick="{{ close() }}"></div>
+  <div class="tx-dialog" role="dialog" aria-modal="true" aria-label="Search documentation">
+    <div class="flex items-center gap-3 px-4 border-b border-line">
+      <IconSearch class="w-[18px] h-[18px] text-muted shrink-0" />
+      <input
+        id="tx-search-input"
+        class="tx-dialog-input"
+        type="text"
+        placeholder="Search the docs"
+        autocomplete="off"
+        spellcheck="false"
+        value="{{ query }}"
+        oninput="{{ onInput($event) }}"
+        onkeydown.down.prevent="{{ move(1) }}"
+        onkeydown.up.prevent="{{ move(-1) }}"
+        onkeydown.enter.prevent="{{ go() }}"
+        aria-controls="tx-search-results"
+      />
+      <button type="button" onclick="{{ close() }}" class="shrink-0"><kbd>Esc</kbd></button>
+    </div>
+
+    <div id="tx-search-results" class="flex-1 overflow-y-auto p-2" role="listbox">
+{{#if not query.trim()}}
+      <p class="px-3 pt-2 pb-1.5 text-xs font-medium text-faint">Popular</p>
+{{/if}}
+{{#if query.trim() and searched and results.length is 0 and not loading}}
+      <div class="px-4 py-12 text-center">
+        <p class="text-sm text-ink font-medium">No results for “{{ query }}”</p>
+        <p class="mt-1 text-sm text-muted">Try a shorter or different word.</p>
+      </div>
+{{/if}}
+{{#each hit, i in shown}}
+      <a href="{{ hrefOf(hit) }}" class="tx-hit" class:is-active="{{ i is active }}" onmouseenter="{{ active = i }}" onclick="{{ close() }}" role="option" aria-selected="{{ i is active }}">
+        <span class="mt-0.5 w-7 h-7 rounded-md border border-line bg-raised flex items-center justify-center shrink-0 text-muted">
+{{#if hit.heading}}
+          <IconHash class="w-3.5 h-3.5" />
+{{#else}}
+          <IconDocumentText class="w-3.5 h-3.5" />
+{{/if}}
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-[11px] text-faint mb-0.5">{{ hit.section }}{{ hit.heading ? " · " + hit.page : "" }}</span>
+          <span class="tx-hit-title block">{{ hit.heading or hit.page }}</span>
+          <span class="tx-hit-snippet">{{ hit.snippet }}</span>
+        </span>
+{{#if i is active}}
+        <IconCornerDownLeft class="w-4 h-4 text-faint self-center shrink-0" />
+{{/if}}
+      </a>
+{{/each}}
+    </div>
+
+    <div class="hidden sm:flex items-center gap-4 px-4 h-10 border-t border-line text-[11px] text-faint">
+      <span class="inline-flex items-center gap-1.5"><kbd>↑</kbd><kbd>↓</kbd> to navigate</span>
+      <span class="inline-flex items-center gap-1.5"><kbd>↵</kbd> to open</span>
+      <span class="inline-flex items-center gap-1.5"><kbd>esc</kbd> to close</span>
+    </div>
+  </div>
+{{/if}}

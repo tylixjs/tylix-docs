@@ -1,0 +1,235 @@
+page PermissionsPage
+
+import CopyCommand from "./components/CopyCommand"
+import SnippetWindow from "./components/SnippetWindow"
+import { IconArrowRight, IconKeyRound, IconUserGroup, IconBan, IconClock, IconBuildingOffice, IconDocumentText, IconCode, IconTerminal, IconCheck, IconDeviceMobile, IconLockClosed, IconArrowPath } from "tylix-icons"
+
+title "Tylix Permissions · Roles and permissions for any JavaScript app"
+
+state
+  tabs: [
+    { key: "perm-define", label: "roles.js" },
+    { key: "perm-check", label: "check.js" },
+    { key: "perm-routes", label: "routes.js" },
+    { key: "perm-page", label: "Posts.tyx" },
+    { key: "perm-react", label: "App.jsx" }
+  ]
+  servers: ["Tylix", "Express", "Fastify", "Hono", "Next.js", "Nuxt", "SvelteKit", "Remix", "Astro"]
+  browsers: ["Tylix pages", "React", "Vue", "Svelte", "Angular"]
+  grants: [
+    { grant: "*", covers: "everything" },
+    { grant: "posts.*", covers: "posts.edit, posts.edit.own, … (one or more segments)" },
+    { grant: "posts.*.own", covers: "posts.edit.own (exactly one segment)" },
+    { grant: "posts.edit,delete", covers: "posts.edit and posts.delete" },
+    { grant: "!posts.delete", covers: "in a role: a deny that beats every allow" }
+  ]
+  compare: [
+    { feature: "Roles, permissions, direct grants", spatie: "yes", tylix: "yes" },
+    { feature: "Wildcards (posts.*, *)", spatie: "opt-in", tylix: "built in" },
+    { feature: "Role inheritance", spatie: "", tylix: "yes" },
+    { feature: "Denies that beat any allow", spatie: "", tylix: "yes" },
+    { feature: "Teams and tenants", spatie: "yes", tylix: "per assignment" },
+    { feature: "Grants that expire", spatie: "", tylix: "yes" },
+    { feature: "Default roles for every account", spatie: "", tylix: "yes" },
+    { feature: "Resource rules (this post)", spatie: "via policies", tylix: "yes" },
+    { feature: "Same answer in the browser", spatie: "", tylix: "yes, synchronous" },
+    { feature: "Declarative sync() for seeders", spatie: "", tylix: "yes" }
+  ]
+  commands: [
+    { cmd: "tylix permission:create-role support users.view tickets.* --inherits writer", note: "a role" },
+    { cmd: "tylix permission:assign admin ada@example.com --team acme --expires 2027-01-01", note: "give a role" },
+    { cmd: "tylix permission:revoke admin ada@example.com", note: "take it back" },
+    { cmd: "tylix permission:show ada@example.com", note: "one user's access" },
+    { cmd: "tylix permission:sync", note: "apply app/permissions" }
+  ]
+
+template
+  <div>
+    <section class="relative overflow-hidden border-b border-line">
+      <div class="tx-dots absolute inset-0 -z-0 opacity-70" aria-hidden="true"></div>
+      <div class="relative tx-container pt-16 sm:pt-24 pb-20 grid lg:grid-cols-12 gap-14 lg:gap-10 items-center">
+        <div class="lg:col-span-5">
+          <p class="inline-flex items-center gap-2 font-mono text-[13px] text-muted"><IconKeyRound class="w-4 h-4 text-brand dark:text-link" /> @tylix/permissions <span class="tx-badge h-5 border-0 bg-brand-soft text-brand dark:text-link">New in 2.1</span></p>
+          <h1 class="tx-display mt-6 text-ink">Who may do what, answered the same everywhere.</h1>
+          <p class="tx-lead mt-6 max-w-[34rem]">
+            Roles, wildcards, inheritance, denies that always win, teams and expiring grants. Checked on the server, and synchronously in the browser with the same rules.
+          </p>
+          <div class="mt-9 flex flex-wrap items-center gap-3">
+            <a href="/docs/permissions" class="tx-btn tx-btn-primary">Read the docs <IconArrowRight class="w-4 h-4" /></a>
+            <a href="https://github.com/Mbiyrukzz/tylix/tree/main/packages/permissions" class="tx-btn tx-btn-outline" target="_blank" rel="noopener noreferrer">Source</a>
+          </div>
+          <div class="mt-6">
+            <CopyCommand command="npm install @tylix/permissions" />
+          </div>
+        </div>
+        <div class="lg:col-span-7 min-w-0">
+          <SnippetWindow tabs="{{ tabs }}" />
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-line">
+      <div class="tx-container py-8 grid lg:grid-cols-2 gap-6 lg:gap-10">
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span class="text-xs font-medium text-faint uppercase tracking-[0.08em] w-full sm:w-auto">Server</span>
+{{#each name in servers}}
+          <span class="text-[15px] font-medium text-soft">{{ name }}</span>
+{{/each}}
+        </div>
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2 lg:justify-end">
+          <span class="text-xs font-medium text-faint uppercase tracking-[0.08em] w-full sm:w-auto">Browser</span>
+{{#each name in browsers}}
+          <span class="text-[15px] font-medium text-soft">{{ name }}</span>
+{{/each}}
+        </div>
+      </div>
+    </section>
+
+    <section class="tx-container py-24 sm:py-28">
+      <div class="max-w-2xl">
+        <p class="tx-eyebrow">The model</p>
+        <h2 class="tx-h2 mt-4 text-ink">What you'd otherwise build on top of a roles table.</h2>
+        <p class="tx-lead mt-5">Every check, on any role or direct grant, follows the same rules, so the answer never depends on where you asked.</p>
+      </div>
+
+      <div class="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 border-l border-t border-line rounded-sm">
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconCode class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Wildcards, built in</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Grant posts.*, posts.edit,delete or everything with *. A typo in a concrete name fails loudly instead of granting nothing.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconUserGroup class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Role inheritance</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">An editor inherits writer, an admin inherits editor. Cycles are refused when you create them.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconBan class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Denies always win</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">!posts.delete in a role, or deny() on one user, beats any allow from anywhere. Only the super-admin passes everything.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconBuildingOffice class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Teams on every assignment</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Admin in team acme, member everywhere else. Assignments without a team apply in all of them.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconClock class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Grants that expire</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Give support access until Friday with expiresAt. Nobody has to remember to take it back.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconDocumentText class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Rules for one resource</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Stored permissions answer "may they edit posts?". A rule answers "may they edit this post?", with what the store said.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconDeviceMobile class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">The same answer in the browser</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">The server sends an access snapshot with the user. Pages check it synchronously, with no request and no flicker.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconArrowPath class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Declarative sync()</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Describe the roles you want. Running the seeder again only applies what changed.</p>
+        </div>
+        <div class="p-7 border-r border-b border-line">
+          <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5"><IconLockClosed class="w-[18px] h-[18px]" /></span>
+          <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">Guards for every framework</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">middleware() for Tylix and Express, guard() around a handler, guardRequest() for Web Request frameworks: 401 for guests, 403 with what was required.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-y border-line bg-raised">
+      <div class="tx-container py-24 sm:py-28 grid lg:grid-cols-2 gap-14 items-start">
+        <div>
+          <p class="tx-eyebrow">Names</p>
+          <h2 class="tx-h2 mt-4 text-ink">Dot-separated names, five kinds of grant.</h2>
+          <p class="tx-lead mt-5 max-w-xl">Permission names are words like <code class="font-mono text-[0.9em] text-ink">billing.invoices.export</code>. Patterns never need a row in the database.</p>
+        </div>
+        <div class="tx-window min-w-0">
+          <div class="p-5 sm:p-6 font-mono text-[13px] leading-[1.9] overflow-x-auto">
+{{#each g in grants}}
+            <p class="flex gap-4 whitespace-nowrap"><span class="text-ink w-40 shrink-0">{{ g.grant }}</span><span class="text-muted">{{ g.covers }}</span></p>
+{{/each}}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tx-container py-24 sm:py-28">
+      <div class="grid lg:grid-cols-3 gap-12 lg:gap-16">
+        <div>
+          <p class="tx-eyebrow">Compared</p>
+          <h2 class="tx-h2 mt-4 text-ink">Inspired by spatie/laravel-permission.</h2>
+          <p class="tx-lead mt-5">The same mental model, with the parts most apps end up adding by hand.</p>
+        </div>
+        <div class="lg:col-span-2 min-w-0 overflow-x-auto border border-line rounded-xl">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-line bg-raised text-left">
+                <th class="py-3 px-4 font-medium text-soft">Feature</th>
+                <th class="py-3 px-4 font-medium text-soft whitespace-nowrap">laravel-permission</th>
+                <th class="py-3 px-4 font-medium text-ink whitespace-nowrap">@tylix/permissions</th>
+              </tr>
+            </thead>
+            <tbody>
+{{#each row in compare}}
+              <tr class="border-b border-line last:border-0">
+                <td class="py-3 px-4 text-ink">{{ row.feature }}</td>
+                <td class="py-3 px-4 text-muted">{{ row.spatie or "—" }}</td>
+                <td class="py-3 px-4 text-ink"><span class="inline-flex items-center gap-1.5"><IconCheck class="w-3.5 h-3.5 text-mint" /> {{ row.tylix }}</span></td>
+              </tr>
+{{/each}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-line bg-raised">
+      <div class="tx-container py-24 sm:py-28 grid lg:grid-cols-2 gap-14 items-center">
+        <div>
+          <p class="tx-eyebrow">In a Tylix app</p>
+          <h2 class="tx-h2 mt-4 text-ink">An admin page, an API and a CLI, from one command.</h2>
+          <p class="tx-lead mt-5 max-w-xl"><code class="font-mono text-[0.9em] text-ink">tylix make:permissions</code> writes the instance, its rules and starting roles, the models, migration and seeder, an admin API and an admin page at <code class="font-mono text-[0.9em] text-ink">/admin/access</code>. Changes that would lock you out of that page are refused.</p>
+          <ul class="mt-7 space-y-2.5 text-[15px] text-soft">
+            <li class="flex gap-2.5"><IconCheck class="w-4 h-4 mt-1 text-mint shrink-0" /> <span><code class="font-mono text-[0.9em] text-ink">GET /api/me</code> carries <code class="font-mono text-[0.9em] text-ink">user.access</code></span></li>
+            <li class="flex gap-2.5"><IconCheck class="w-4 h-4 mt-1 text-mint shrink-0" /> <span>Templates get <code class="font-mono text-[0.9em] text-ink">can()</code>, <code class="font-mono text-[0.9em] text-ink">cannot()</code>, <code class="font-mono text-[0.9em] text-ink">canAny()</code> and <code class="font-mono text-[0.9em] text-ink">hasRole()</code></span></li>
+            <li class="flex gap-2.5"><IconCheck class="w-4 h-4 mt-1 text-mint shrink-0" /> <span>A page's <code class="font-mono text-[0.9em] text-ink">permissions</code> block is enforced</span></li>
+            <li class="flex gap-2.5"><IconCheck class="w-4 h-4 mt-1 text-mint shrink-0" /> <span><code class="font-mono text-[0.9em] text-ink">tylix dev</code> marks guarded routes with 🔑</span></li>
+          </ul>
+        </div>
+        <div class="tx-window min-w-0">
+          <div class="flex items-center gap-2 h-11 px-4 border-b border-line text-xs font-mono text-muted">
+            <IconTerminal class="w-3.5 h-3.5" /> Terminal
+          </div>
+          <div class="p-5 sm:p-6 font-mono text-[13px] leading-[1.75] overflow-x-auto">
+            <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix make:permissions</p>
+            <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix migrate &amp;&amp; tylix db:seed</p>
+            <div class="mt-4 pt-4 border-t border-line space-y-1">
+{{#each c in commands}}
+              <p class="whitespace-nowrap"><span class="text-faint select-none">$ </span><span class="text-soft">{{ c.cmd }}</span></p>
+{{/each}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-line">
+      <div class="tx-container py-20 sm:py-24 grid sm:grid-cols-2 gap-4">
+        <a href="/auth" class="tx-panel p-7 hover:border-line-strong transition-colors">
+          <IconLockClosed class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 font-semibold text-ink">Who is signed in</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Permissions sit on top of @tylix/auth: revocable sessions, two-factor and social sign-in.</p>
+        </a>
+        <a href="/docs/pwa" class="tx-panel p-7 hover:border-line-strong transition-colors">
+          <IconDeviceMobile class="w-5 h-5 text-brand dark:text-link" />
+          <h3 class="mt-4 font-semibold text-ink">Also new in 2.1: installable apps</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">Any Tylix app becomes an offline-ready PWA with install and update prompts, for every frontend.</p>
+        </a>
+      </div>
+    </section>
+  </div>

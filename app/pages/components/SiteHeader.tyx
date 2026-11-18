@@ -1,0 +1,89 @@
+component SiteHeader
+
+import { IconSun, IconMoon, IconMenu, IconX, IconSearch, IconGithub } from "tylix-icons"
+
+uses
+  Theme
+  Site
+
+state
+  menuOpen: false
+
+computed
+  links() {
+    return [
+      { label: "Docs", href: "/docs" },
+      { label: "Auth", href: "/auth" },
+      { label: "Permissions", href: "/permissions" },
+      { label: "PDF & Excel", href: "/documents" },
+      { label: "Changelog", href: "/changelog" },
+      { label: "Status", href: "/status" }
+    ]
+  }
+
+action
+  isActive(href) {
+    const path = window.location.pathname
+    return path is href or path.startsWith(href + "/")
+  }
+
+  toggleMenu() {
+    this.menuOpen = not this.menuOpen
+  }
+
+template
+  <header class="tx-header">
+    <div class="tx-container tx-container-wide h-full flex items-center gap-6">
+      <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Tylix home">
+        <img src="/logo-mark.svg" alt="" class="tx-logo h-[20px] w-auto" />
+        <span class="text-[16px] font-semibold tracking-[-0.02em]">Tylix</span>
+      </a>
+      <a href="/changelog" class="hidden sm:inline-flex tx-badge hover:border-line-strong transition-colors -ml-2" title="Latest release">v2.1</a>
+
+      <nav class="hidden lg:flex items-center gap-1" aria-label="Main">
+{{#each link in links}}
+        <a href="{{ link.href }}" class="tx-nav-link" class:is-active="{{ isActive(link.href) }}">{{ link.label }}</a>
+{{/each}}
+      </nav>
+
+      <div class="ml-auto flex items-center gap-1.5">
+        <button type="button" onclick="{{ Site.openSearch() }}" class="tx-search-trigger hidden sm:inline-flex w-56" aria-label="Search the docs">
+          <IconSearch class="w-4 h-4" />
+          <span class="flex-1 text-left">Search docs</span>
+          <kbd>⌘K</kbd>
+        </button>
+        <button type="button" onclick="{{ Site.openSearch() }}" class="tx-icon-btn sm:hidden" aria-label="Search the docs">
+          <IconSearch class="w-[18px] h-[18px]" />
+        </button>
+        <a href="https://github.com/tylixjs" class="tx-icon-btn" aria-label="Tylix on GitHub" target="_blank" rel="noopener noreferrer">
+          <IconGithub class="w-[18px] h-[18px]" />
+        </a>
+        <button type="button" onclick="{{ Theme.toggle() }}" class="tx-icon-btn" aria-label="Toggle color theme">
+{{#if Theme.mode is "dark"}}
+          <IconSun class="w-[18px] h-[18px]" />
+{{#else}}
+          <IconMoon class="w-[18px] h-[18px]" />
+{{/if}}
+        </button>
+        <a href="/docs/installation" class="hidden xl:inline-flex tx-btn tx-btn-ink tx-btn-sm ml-1.5">Get started</a>
+        <button type="button" onclick="{{ toggleMenu() }}" class="tx-icon-btn lg:hidden" aria-label="Toggle menu" aria-expanded="{{ menuOpen }}" aria-controls="tx-mobile-menu">
+{{#if menuOpen}}
+          <IconX class="w-[18px] h-[18px]" />
+{{#else}}
+          <IconMenu class="w-[18px] h-[18px]" />
+{{/if}}
+        </button>
+      </div>
+    </div>
+
+{{#if menuOpen}}
+    <div id="tx-mobile-menu" class="lg:hidden absolute inset-x-0 top-full border-b border-line bg-canvas shadow-lg">
+      <div class="tx-container py-3 flex flex-col">
+{{#each link in links}}
+        <a href="{{ link.href }}" class="py-2.5 text-[15px] text-soft hover:text-ink" class:text-ink="{{ isActive(link.href) }}">{{ link.label }}</a>
+{{/each}}
+        <a href="/docs/installation" class="tx-btn tx-btn-primary mt-3">Get started</a>
+      </div>
+    </div>
+{{/if}}
+  </header>

@@ -1,0 +1,16 @@
+component FeatureCell
+
+props
+  title: string
+  text: string
+  href: string
+
+template
+  <a href="{{ href }}" class="group relative block p-7 border-r border-b border-line hover:bg-raised transition-colors">
+    <span class="w-9 h-9 rounded-lg border border-line bg-canvas flex items-center justify-center text-brand dark:text-link mb-5">
+      <slot />
+    </span>
+    <h3 class="text-[15px] font-semibold tracking-[-0.01em] text-ink">{{ title }}</h3>
+    <p class="mt-2 text-sm leading-relaxed text-muted">{{ text }}</p>
+    <span class="absolute top-7 right-7 text-faint opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">→</span>
+  </a>

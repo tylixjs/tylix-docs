@@ -15,23 +15,27 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tylix/cli": "^2.1.1",
-    "@tylix/core": "^2.1.1",
-    "@tylix/compiler": "^2.1.1",
-    "@tylix/generator": "^2.1.1",
-    "@tylix/orm": "^2.1.1",
-    "@tylix/shared": "^2.1.1",
-    "@tylix/mail": "^2.1.1",
-    "tylix-icons": "^2.1.1",
     "@tylix/auth": "^2.1.1",
-    "@tylix/pwa": "^2.1.1"
+    "@tylix/cli": "^2.1.1",
+    "@tylix/compiler": "^2.1.1",
+    "@tylix/core": "^2.1.1",
+    "@tylix/excel": "^2.1.1",
+    "@tylix/generator": "^2.1.1",
+    "@tylix/mail": "^2.1.1",
+    "@tylix/orm": "^2.1.1",
+    "@tylix/pdf": "^2.1.1",
+    "@tylix/pwa": "^2.1.1",
+    "@tylix/shared": "^2.1.1",
+    "marked": "^15.0.12",
+    "shiki": "^3.23.0",
+    "tylix-icons": "^2.1.1"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.0",
+    "@types/node": "^22.0.0",
     "autoprefixer": "^10.4.0",
-    "typescript": "^5.5.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
     "tsx": "^4.16.0",
-    "@types/node": "^22.0.0"
+    "typescript": "^5.5.0"
   }
 }

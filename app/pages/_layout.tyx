@@ -1,13 +1,15 @@
 component SiteLayout
 
-import SiteNavbar from "./components/SiteNavbar"
+import SiteHeader from "./components/SiteHeader"
 import SiteFooter from "./components/SiteFooter"
+import SearchDialog from "./components/SearchDialog"
 import PwaPrompt from "./components/PwaPrompt"
 
 template
   <div class="tx-shell">
-    <SiteNavbar showPosts="{{ true }}" />
+    <SiteHeader />
     <main class="flex-1" data-tylix-slot="true"></main>
+    <SiteFooter />
+    <SearchDialog />
     <PwaPrompt />
-    <SiteFooter showPosts="{{ true }}" showAccount="{{ true }}" />
   </div>

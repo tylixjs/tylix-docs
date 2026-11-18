@@ -1,11 +1,19 @@
 page NotFound
 
-title "Page not found"
+import { IconArrowRight } from "tylix-icons"
+
+title "Page not found · Tylix"
+
+uses
+  Site
 
 template
-  <main class="min-h-[70vh] flex flex-col items-center justify-center text-center px-6">
-    <p class="font-mono text-6xl font-semibold tracking-tight tx-gradient-text mb-3">404</p>
-    <h1 class="mt-2 text-3xl font-semibold text-ink">Page not found</h1>
-    <p class="mt-3 text-muted">The page you're looking for doesn't exist.</p>
-    <a href="/" class="mt-6 px-5 py-2 rounded-full bg-gradient-to-r from-brand to-aqua text-white font-semibold">Go home</a>
-  </main>
+  <section class="tx-container min-h-[65vh] flex flex-col items-center justify-center text-center py-24">
+    <p class="font-mono text-sm text-faint">404</p>
+    <h1 class="tx-h2 mt-4 text-ink">This page doesn't exist.</h1>
+    <p class="tx-lead mt-4 max-w-md">The link may be old, or the page moved. Searching the docs usually finds it.</p>
+    <div class="mt-9 flex flex-wrap justify-center gap-3">
+      <button type="button" onclick="{{ Site.openSearch() }}" class="tx-btn tx-btn-outline">Search the docs <kbd>/</kbd></button>
+      <a href="/" class="tx-btn tx-btn-primary">Go home <IconArrowRight class="w-4 h-4" /></a>
+    </div>
+  </section>
