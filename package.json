@@ -1,0 +1,37 @@
+{
+  "name": "tylix-docs",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tylix dev",
+    "build": "tylix build",
+    "start": "tylix start",
+    "migrate": "tylix migrate",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\"",
+    "doctor": "tylix doctor",
+    "tinker": "tylix tinker",
+    "css:build": "tailwindcss -i ./app/tailwind-input.css -o ./public/tailwind.css",
+    "css:watch": "tailwindcss -i ./app/tailwind-input.css -o ./public/tailwind.css --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tylix/cli": "^2.1.1",
+    "@tylix/core": "^2.1.1",
+    "@tylix/compiler": "^2.1.1",
+    "@tylix/generator": "^2.1.1",
+    "@tylix/orm": "^2.1.1",
+    "@tylix/shared": "^2.1.1",
+    "@tylix/mail": "^2.1.1",
+    "tylix-icons": "^2.1.1",
+    "@tylix/auth": "^2.1.1",
+    "@tylix/pwa": "^2.1.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0",
+    "typescript": "^5.5.0",
+    "tsx": "^4.16.0",
+    "@types/node": "^22.0.0"
+  }
+}

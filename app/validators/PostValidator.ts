@@ -1,0 +1,19 @@
+/**
+ * Feature: Post (override)
+ *
+ * FeatureGenerator names this export validate${Model} by convention
+ * (see feature.json's "validator" field / controller.tyx's import), so
+ * this keeps that name — validatePost — even though it's hand-written
+ * rather than produced by ValidatorGenerator.
+ */
+
+import { validate, required, isString, maxLength, withMessage } from "@tylix/shared/validation";
+
+export const postSchema = {
+    title: [withMessage(required, "Give the post a title."), isString, maxLength(200)],
+    body: [withMessage(required, "Write something in the post."), isString],
+};
+
+export function validatePost(data: Record<string, unknown>) {
+    return validate(data, postSchema);
+}
