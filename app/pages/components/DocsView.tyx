@@ -5,6 +5,12 @@ component DocsView
 // content/docs/<slug>.md through /api/docs/page/:slug.
 
 import { IconArrowLeft, IconArrowRight, IconPencil, IconChevronDown, IconChevronRight, IconMenu } from "tylix-icons"
+import PageLoading from "./PageLoading"
+
+// The sidebar keeps its place between pages: its scroll position is saved
+// as you scroll it and restored on the next page, and the nav is cached for
+// the tab so the sidebar is drawn before the API answers. When the current
+// page's link would be out of view, the sidebar scrolls it to the middle.
 
 props
   slug: string
@@ -63,7 +69,48 @@ action
     this.activeId = headings[0].id
   }
 
+  readSession(key) {
+    try {
+      return sessionStorage.getItem(key)
+    } catch (err) {
+      return null
+    }
+  }
+
+  writeSession(key, value) {
+    try {
+      sessionStorage.setItem(key, value)
+    } catch (err) {
+      return null
+    }
+  }
+
+  keepSidebarPlace() {
+    const side = document.querySelector(".tx-sidebar")
+    if not side {
+      return null
+    }
+    const saved = this.readSession("tx-docs:side-scroll")
+    if saved {
+      side.scrollTop = Number(saved)
+    }
+    const active = side.querySelector(".tx-side-link.is-active")
+    if active {
+      const box = side.getBoundingClientRect()
+      const link = active.getBoundingClientRect()
+      if link.top < box.top + 48 or link.bottom > box.bottom - 48 {
+        side.scrollTop = side.scrollTop + (link.top - box.top) - side.clientHeight / 2 + link.height / 2
+      }
+    }
+    if side.hasAttribute("data-place-watched") {
+      return null
+    }
+    side.setAttribute("data-place-watched", "")
+    side.addEventListener("scroll", () => this.writeSession("tx-docs:side-scroll", String(Math.round(side.scrollTop))), { passive: true })
+  }
+
   afterRender() {
+    this.keepSidebarPlace()
     this.watchHeadings()
     const hash = decodeURIComponent(window.location.hash.slice(1))
     if hash {
@@ -77,6 +124,16 @@ action
 
 onMount
   async {
+    const cachedNav = this.readSession("tx-docs:nav")
+    if cachedNav {
+      try {
+        this.nav = JSON.parse(cachedNav)
+        requestAnimationFrame(() => this.keepSidebarPlace())
+      } catch (err) {
+        this.nav = []
+      }
+    }
+
     const [navResult, pageResult] = await Promise.all([
       useApi("/api/docs/nav"),
       useApi(`/api/docs/page/${encodeURIComponent(this.slug)}`)
@@ -84,6 +141,7 @@ onMount
 
     if navResult.ok {
       this.nav = navResult.data.data
+      this.writeSession("tx-docs:nav", JSON.stringify(this.nav))
     }
 
     if pageResult.ok {
@@ -156,12 +214,7 @@ template
       <div class="min-w-0 pt-8 lg:pt-10 pb-20">
 {{#if loading}}
         <div class="max-w-[46rem]" aria-busy="true">
-          <div class="tx-skel w-24 mb-5"></div>
-          <div class="tx-skel h-9 w-2/3 mb-5"></div>
-          <div class="tx-skel w-full mb-3"></div>
-          <div class="tx-skel w-11/12 mb-3"></div>
-          <div class="tx-skel w-4/5 mb-10"></div>
-          <div class="tx-skel h-40 w-full"></div>
+          <PageLoading label="Loading the page" />
         </div>
 {{#else if gone}}
         <div class="max-w-[46rem] py-10">

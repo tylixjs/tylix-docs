@@ -50,8 +50,8 @@ Saving a file shows up in the browser without restarting anything:
 ## Add your first feature
 
 ```bash
-tylix make:feature Todo title:string:required done:boolean:default=false
-tylix migrate
+npx tylix make:feature Todo title:string:required done:boolean:default=false
+npx tylix migrate
 ```
 
 That writes a model, a migration, a validator and a CRUD API under `/api/todos`, and it works straight away:
@@ -63,7 +63,7 @@ curl localhost:3000/api/todos
 ## Check your setup
 
 ```bash
-tylix doctor
+npx tylix doctor
 ```
 
 `doctor` checks the project, your settings (and where each value came from), the database connection and the frontend. Run it first whenever something looks off.

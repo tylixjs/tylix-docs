@@ -24,7 +24,7 @@ Its README covers Neovim and Helix setup. Files that don't start with `page`, `c
 
 ## Error overlay
 
-Under `tylix dev`, a compile error opens a page showing:
+Under `npx tylix dev`, a compile error opens a page showing:
 
 - the failing file (the component or capability itself, not the page that used it);
 - the line and column, underlined;
@@ -41,4 +41,4 @@ A Chrome and Firefox extension (Chrome Web Store: *Tylix DevTools*). It adds a *
 - run actions;
 - highlight a component on the page.
 
-It works on pages served by `tylix dev` and asks for no site permissions. Production pages don't install the hook it uses.
+It works on pages served by `npx tylix dev` and asks for no site permissions. Production pages don't install the hook it uses.

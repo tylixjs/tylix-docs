@@ -6,7 +6,7 @@ description: Reusable pieces of UI with props, their own state and actions, and 
 A component is a `.tyx` file that starts with `component <Name>`. It has the same sections as a page: `props`, `state`, `computed`, `action`, `onMount`, `template` and `style`.
 
 ```bash
-tylix make:component StatCard
+npx tylix make:component StatCard
 ```
 
 ```tyx title="app/pages/components/StatCard.tyx"

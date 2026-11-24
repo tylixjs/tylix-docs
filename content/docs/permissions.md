@@ -4,9 +4,9 @@ description: Roles, permissions, wildcards, inheritance, denies that always win,
 ---
 
 ```bash
-tylix make:permissions
-npm install && tylix migrate && tylix db:seed
-tylix permission:assign admin you@example.com
+npx tylix make:permissions
+npm install && npx tylix migrate && npx tylix db:seed
+npx tylix permission:assign admin you@example.com
 ```
 
 This writes `app/permissions` (the instance, its rules and the starting roles), `Role` and `Permission` models, a migration, a seeder, an admin API and, for `.tyx` apps, an admin page at `/admin/access` for creating roles and giving users roles. A change that would remove your own access to that page is refused.
@@ -86,15 +86,15 @@ template
 {{/if}}
 ```
 
-A page's `permissions` block is enforced: guests go to login, and everyone else without access sees a 403. The browser answers synchronously from `user.access`, which `GET /api/me` carries, using the same rules as the server. `tylix dev` marks guarded routes with 🔑 and the permission they need.
+A page's `permissions` block is enforced: guests go to login, and everyone else without access sees a 403. The browser answers synchronously from `user.access`, which `GET /api/me` carries, using the same rules as the server. `npx tylix dev` marks guarded routes with 🔑 and the permission they need.
 
 ## From the terminal
 
 | Command | |
 | --- | --- |
-| `tylix permission:create-role support users.view tickets.* --inherits writer` | Create a role |
-| `tylix permission:create-permission invoices.export --description "..."` | Create a permission |
-| `tylix permission:assign admin ada@example.com [--team acme] [--expires 2027-01-01]` | Give a role |
-| `tylix permission:revoke admin ada@example.com` | Take it back |
-| `tylix permission:show [user]` | The role × permission matrix, or one user's access |
-| `tylix permission:sync` | Apply the definition in `app/permissions` |
+| `npx tylix permission:create-role support users.view tickets.* --inherits writer` | Create a role |
+| `npx tylix permission:create-permission invoices.export --description "..."` | Create a permission |
+| `npx tylix permission:assign admin ada@example.com [--team acme] [--expires 2027-01-01]` | Give a role |
+| `npx tylix permission:revoke admin ada@example.com` | Take it back |
+| `npx tylix permission:show [user]` | The role × permission matrix, or one user's access |
+| `npx tylix permission:sync` | Apply the definition in `app/permissions` |

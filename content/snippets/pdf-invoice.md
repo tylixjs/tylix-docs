@@ -1,5 +1,5 @@
 ```js
-// app/pdfs/InvoicePdf.js (tylix make:pdf Invoice)
+// app/pdfs/InvoicePdf.js (npx tylix make:pdf Invoice)
 import { createPdf } from "@tylix/pdf"
 
 export function invoicePdf(invoice) {

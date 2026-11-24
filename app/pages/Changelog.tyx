@@ -3,6 +3,8 @@ page Changelog
 // Releases come from the Ashmif Hub (HUB_URL, product HUB_PRODUCT) through
 // /api/site/changelog. Edit them in the Hub, not here.
 
+import PageLoading from "./components/PageLoading"
+
 title "Changelog · Tylix"
 
 state
@@ -89,9 +91,8 @@ template
 
     <div class="mt-12 border-t border-line">
 {{#if loading}}
-      <div class="py-12 grid md:grid-cols-[12rem_1fr] gap-6" aria-busy="true">
-        <div class="tx-skel w-24"></div>
-        <div class="space-y-3"><div class="tx-skel h-6 w-1/2"></div><div class="tx-skel w-full"></div><div class="tx-skel w-4/5"></div></div>
+      <div aria-busy="true">
+        <PageLoading label="Loading releases" />
       </div>
 {{#else if error}}
       <div class="py-16 text-center">

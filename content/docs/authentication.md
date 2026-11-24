@@ -8,7 +8,7 @@ Since 2.1 every Tylix app includes authentication. The installer generates the m
 > [!TIP]
 > For what the engine does under the hood, and how to use it outside Tylix, see the [Tylix Auth overview](/auth).
 
-An app created before 2.1 gets it with `tylix make:auth` followed by `tylix migrate`. Everyone signs in once more, because refresh tokens from the old `refresh_tokens` table aren't carried over.
+An app created before 2.1 gets it with `npx tylix make:auth` followed by `npx tylix migrate`. Everyone signs in once more, because refresh tokens from the old `refresh_tokens` table aren't carried over.
 
 ## Routes
 

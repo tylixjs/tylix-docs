@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Settings live in .env and tylix.config. Every value is documented in the generated .env, and tylix doctor shows where each one came from.
+description: Settings live in .env and tylix.config. Every value is documented in the generated .env, and npx tylix doctor shows where each one came from.
 ---
 
 Tylix reads settings from two places:
@@ -9,7 +9,7 @@ Tylix reads settings from two places:
 - **`tylix.config.ts`** for how the app behaves (logging channels, queue defaults, plugins, PWA, export).
 
 ```bash
-tylix doctor
+npx tylix doctor
 ```
 
 `doctor` prints every setting along with its source: `.env`, `tylix.config`, or the built-in default.
@@ -69,7 +69,7 @@ export default defineConfig({
 
 | Variable | Default | |
 | --- | --- | --- |
-| `WORKERS` | `auto` | Processes `tylix start` runs, sharing the port |
+| `WORKERS` | `auto` | Processes `npx tylix start` runs, sharing the port |
 | `STORE_DRIVER` | `database` | `database`, `redis` or `memory`: where cache, rate limits and channel messages live |
 | `REDIS_URL` | | When `STORE_DRIVER=redis` |
 | `LOG_LEVEL`, `LOG_FORMAT` | `info`, auto | `json` in production, `pretty` in development |

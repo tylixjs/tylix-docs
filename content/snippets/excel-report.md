@@ -1,5 +1,5 @@
 ```js
-// app/exports/OrdersExport.js (tylix make:export Orders)
+// app/exports/OrdersExport.js (npx tylix make:export Orders)
 import { createWorkbook } from "@tylix/excel"
 
 export function ordersExport(orders) {

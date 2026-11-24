@@ -354,6 +354,13 @@ kbd, .tx-kbd {
 .tx-loader-mark .tx-loader-s3 { animation-delay: 0.3s; }
 @keyframes tx-loader-in { to { opacity: 1; } }
 @keyframes tx-loader-stroke { 0%, 100% { opacity: 0.18; transform: translateX(-6px); } 35%, 60% { opacity: 1; transform: none; } }
+.tx-loader-sm { padding: 2.5rem 1rem; gap: 0.625rem; }
+.tx-loader-sm .tx-loader-mark { width: 30px; }
+/* The sliding bar under the mark, as on the loading screen */
+.tx-loader-track { position: relative; width: 132px; height: 3px; margin-top: 0.5rem; border-radius: 3px; overflow: hidden; background: rgb(var(--tx-line)); }
+.tx-loader-sm .tx-loader-track { width: 96px; margin-top: 0.25rem; }
+.tx-loader-bar { position: absolute; inset: 0 auto 0 0; width: 40%; border-radius: 3px; background: linear-gradient(90deg, rgb(var(--tx-brand)), rgb(111 224 234)); animation: tx-loader-slide 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+@keyframes tx-loader-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 
 /* Skeleton lines while a doc loads */
 .tx-skel { height: 0.875rem; border-radius: 6px; background: rgb(var(--tx-well)); animation: tx-skel 1.4s ease-in-out infinite; }
@@ -361,6 +368,8 @@ kbd, .tx-kbd {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+  .tx-loader-mark path { animation: none !important; opacity: 1; transform: none; }
+  .tx-loader-bar { animation: none !important; width: 100%; opacity: 0.5; }
 }
 
 @tailwind utilities;

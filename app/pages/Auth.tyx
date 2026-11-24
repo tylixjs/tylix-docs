@@ -28,7 +28,7 @@ state
     { name: "sqlAdapter", text: "pg, mysql2, better-sqlite3, node:sqlite, Drizzle or Kysely raw SQL. Rotation is a real compare-and-swap." },
     { name: "prismaAdapter", text: "Prisma, with the model definition included." },
     { name: "keyValueAdapter", text: "Redis, Upstash, Vercel KV, Cloudflare KV or Deno KV." },
-    { name: "modelAdapter", text: "Tylix ORM models. tylix make:auth sets it up." }
+    { name: "modelAdapter", text: "Tylix ORM models. npx tylix make:auth sets it up." }
   ]
   tylixRoutes: ["register", "login", "refresh", "logout", "logout-all", "sessions", "change-password", "verify-email", "resend-verification", "forgot-password", "reset-password", "Google & GitHub"]
 
@@ -181,8 +181,8 @@ template
         </div>
         <div class="tx-window min-w-0">
           <div class="p-5 sm:p-6 font-mono text-[13px] leading-[1.75] overflow-x-auto">
-            <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix make:auth</p>
-            <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix migrate</p>
+            <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>npx tylix make:auth</p>
+            <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>npx tylix migrate</p>
             <p class="mt-4 whitespace-nowrap text-faint"># .env: social sign-in appears once these are set</p>
             <p class="whitespace-nowrap text-soft">GOOGLE_CLIENT_ID=…</p>
             <p class="whitespace-nowrap text-soft">GITHUB_CLIENT_ID=…</p>

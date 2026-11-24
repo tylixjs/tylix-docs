@@ -6,7 +6,7 @@ description: Make any Tylix app installable and offline-ready, for every fronten
 Choose **Installable app** when creating the project (or pass `--pwa`), or add it later:
 
 ```bash
-tylix make:pwa
+npx tylix make:pwa
 ```
 
 That adds icons, an offline page, the `pwa` config and an update and install prompt.

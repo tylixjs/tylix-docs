@@ -1,0 +1,18 @@
+component PageLoading
+
+// The loading indicator for a page or section that is waiting on data: the
+// Tylix mark lit stroke by stroke over a sliding bar, the same animation as
+// the loading screen (and the Hub's). Fades in after 150ms, so fast loads
+// never flash it. `compact` is for a section of a page rather than the
+// whole content area.
+
+props
+  label: string
+  compact: boolean
+
+template
+  <div class="tx-loader" class:tx-loader-sm="{{ compact }}" role="status" aria-live="polite">
+    <svg class="tx-loader-mark" viewBox="0 0 552 366" aria-hidden="true" focusable="false"><path class="tx-loader-s1" d="M0 96 74 22Q96 0 120 0H552L482 77Q462 96 436 96Z"/><path class="tx-loader-s2" d="M34 366 148 151Q160 127 190 127H290L163 366Z"/><path class="tx-loader-s3" d="M218 339 294 192Q304 171 334 171H442L378 264Q368 277 353 283Z"/></svg>
+    <div class="tx-loader-track"><div class="tx-loader-bar"></div></div>
+    <span class="sr-only">{{ label ? label : "Loading" }}…</span>
+  </div>

@@ -135,4 +135,4 @@ if result.ok {
 ```
 
 > [!TIP]
-> In TypeScript projects, `tylix dev` writes `app/types/api.d.ts` from your routes, so these calls are typed. See [Typed API client](/docs/typed-api-client).
+> In TypeScript projects, `npx tylix dev` writes `app/types/api.d.ts` from your routes, so these calls are typed. See [Typed API client](/docs/typed-api-client).

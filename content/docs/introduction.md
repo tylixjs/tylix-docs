@@ -18,7 +18,7 @@ npm create tylix@latest
 - **A typed API client** generated from your routes, so a renamed field is a type error, not a production bug.
 - **Background work.** Queues with retries and backoff, scheduled tasks, live channels and mail.
 - **Production built in.** Workers sharing one port, health and readiness checks, Prometheus metrics, request ids and Laravel-style log channels.
-- **Generators for everything.** `tylix make:feature` writes a model, migration, validator and CRUD API you can call right away.
+- **Generators for everything.** `npx tylix make:feature` writes a model, migration, validator and CRUD API you can call right away.
 
 ## A taste
 

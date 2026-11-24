@@ -47,7 +47,7 @@ API routes. `web.ts` exports `publicRoutes` and `protectedRoutes`. Every other f
 
 ### `app/models` and `database/migrations`
 
-One model class per table, and the migrations that create and change those tables. `tylix make:feature` writes both.
+One model class per table, and the migrations that create and change those tables. `npx tylix make:feature` writes both.
 
 ### `app/capabilities`
 
@@ -55,7 +55,7 @@ Shared, reactive state for `.tyx` pages, such as `Auth.user` or `Theme.mode`. A 
 
 ### `tylix.config.ts` and `.env`
 
-Settings. Every value is documented in the generated `.env`, and `tylix doctor` prints each one along with where it came from. See [configuration](/docs/configuration).
+Settings. Every value is documented in the generated `.env`, and `npx tylix doctor` prints each one along with where it came from. See [configuration](/docs/configuration).
 
 > [!NOTE]
 > Apps made before 2.0 keep React, Vue, Svelte or Angular code in `app/frontend`. When only `app/frontend` exists, every command uses it, so nothing has to move.

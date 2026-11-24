@@ -1,5 +1,5 @@
 ```js
-// tylix.config.js: or run `tylix make:pwa`
+// tylix.config.js: or run `npx tylix make:pwa`
 export default defineConfig({
   pwa: {
     name: 'Acme Console',

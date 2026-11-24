@@ -18,7 +18,7 @@ Contributions, ideas and bug reports are welcome.
 | --- | --- |
 | `npm test` | Unit tests for every package |
 | `npm run test:e2e -- <url>` | Browser checks against a running app |
-| `npm run test:e2e:frontends` | Scaffolds the React, Vue, Svelte, Angular and native starters from this checkout, then runs the browser checks against each under `tylix dev` and `tylix start` (`--only react,vue` picks some) |
+| `npm run test:e2e:frontends` | Scaffolds the React, Vue, Svelte, Angular and native starters from this checkout, then runs the browser checks against each under `npx tylix dev` and `npx tylix start` (`--only react,vue` picks some) |
 | `npm run test:compat` | Each frontend adapter against the oldest and newest framework major it supports |
 | `npm run test:editor` | Builds the VS Code extension, runs its grammar tests and the LSP protocol test |
 | `npm run verify` | The release check: unit tests, then the frontend matrix |

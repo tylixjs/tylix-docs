@@ -26,11 +26,11 @@ Jobs keep running once each, as before, unless a job or `queue` in `tylix.config
 
 ### Migrations
 
-Migrations you already have run unchanged, and columns are still nullable unless you say `notNullable()`. The `migrations` table gets a `batch` column the first time `tylix migrate` runs.
+Migrations you already have run unchanged, and columns are still nullable unless you say `notNullable()`. The `migrations` table gets a `batch` column the first time `npx tylix migrate` runs.
 
 ### Typed API client
 
-`tylix dev` now writes a typed client (`app/views/api.generated.ts`, or `app/types/api.d.ts` for native pages). Set `typedRoutes: false` in `tylix.config` to turn that off.
+`npx tylix dev` now writes a typed client (`app/views/api.generated.ts`, or `app/types/api.d.ts` for native pages). Set `typedRoutes: false` in `tylix.config` to turn that off.
 
 ### create-tylix
 

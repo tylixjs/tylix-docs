@@ -26,7 +26,7 @@ if (!result.valid) {
 }
 ```
 
-Generated features do exactly this: `tylix make:feature` writes a validator from the fields you list, and `required` fields are enforced on create and update.
+Generated features do exactly this: `npx tylix make:feature` writes a validator from the fields you list, and `required` fields are enforced on create and update.
 
 ## In the browser
 

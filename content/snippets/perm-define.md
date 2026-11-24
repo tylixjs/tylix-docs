@@ -1,5 +1,5 @@
 ```js
-// app/permissions/index.js (tylix make:permissions)
+// app/permissions/index.js (npx tylix make:permissions)
 import { createPermissions, ormStore } from "@tylix/permissions"
 
 export const permissions = createPermissions({

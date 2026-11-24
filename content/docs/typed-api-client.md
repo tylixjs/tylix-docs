@@ -3,7 +3,7 @@ title: Typed API client
 description: The routes your app registers become a typed client, so a renamed field or a missing parameter is a type error before it's a bug.
 ---
 
-`tylix dev` writes the client when it starts, and `tylix routes:types` writes it on demand.
+`npx tylix dev` writes the client when it starts, and `npx tylix routes:types` writes it on demand.
 
 | Frontend | File |
 | --- | --- |
@@ -29,7 +29,7 @@ The client runs on `api()` from `@tylix/client`, so session refresh and the `{ o
 ## In CI
 
 ```bash
-tylix routes:types --check
+npx tylix routes:types --check
 ```
 
 This fails when the generated file is stale, meaning someone changed a route and didn't commit the new types.

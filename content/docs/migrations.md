@@ -6,9 +6,9 @@ description: Create and change tables with indexes, foreign keys and column chan
 ## Writing a migration
 
 ```bash
-tylix make:migration create_tags_table name:string:unique
-tylix make:migration add_status_to_posts_table status:string:index:required:default=draft
-tylix make:migration tune_posts --table=posts      # an empty alterTable
+npx tylix make:migration create_tags_table name:string:unique
+npx tylix make:migration add_status_to_posts_table status:string:index:required:default=draft
+npx tylix make:migration tune_posts --table=posts      # an empty alterTable
 ```
 
 The name says what it does: `create_x_table`, `add_y_to_x_table` and `remove_y_from_x_table` fill in the right code.
@@ -53,13 +53,13 @@ export const up = async (schema) => {
 ## Running migrations
 
 ```bash
-tylix migrate                     # run new migrations, as one batch
-tylix migrate:status              # what has run, and in which batch
-tylix migrate:rollback            # undo the last batch
-tylix migrate:rollback --step=2   # undo the last two migrations
-tylix migrate:refresh --seed      # roll everything back, migrate, seed
-tylix migrate:fresh               # drop every table, migrate (--force in production)
-tylix db:seed                     # run app/seeders
+npx tylix migrate                     # run new migrations, as one batch
+npx tylix migrate:status              # what has run, and in which batch
+npx tylix migrate:rollback            # undo the last batch
+npx tylix migrate:rollback --step=2   # undo the last two migrations
+npx tylix migrate:refresh --seed      # roll everything back, migrate, seed
+npx tylix migrate:fresh               # drop every table, migrate (--force in production)
+npx tylix db:seed                     # run app/seeders
 ```
 
 On SQLite and PostgreSQL each migration runs in a transaction, so one that fails changes nothing.
@@ -85,6 +85,6 @@ Indexes are named `<table>_<columns>_index`, `_unique` or `_foreign`, so you can
 `make:feature`, `field:add` and `make:migration` take modifiers after the type: `unique`, `index`, `required`, `nullable` and `default=<value>`.
 
 ```bash
-tylix field:add Invoice status:string:index:default=draft
-tylix field:remove Invoice legacy_code
+npx tylix field:add Invoice status:string:index:default=draft
+npx tylix field:remove Invoice legacy_code
 ```

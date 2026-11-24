@@ -68,7 +68,7 @@ const claimed = await Job.updateWhere({ id, status: "pending" }, { status: "proc
 Observers run code when a model changes: `creating`/`created`, `updating`/`updated` and `deleting`/`deleted`.
 
 ```bash
-tylix make:observer Audit --model Post
+npx tylix make:observer Audit --model Post
 ```
 
 ```ts
@@ -93,7 +93,7 @@ const results = await Post.search("tylix");
 ```
 
 ```bash
-tylix make:trait HasSlug
+npx tylix make:trait HasSlug
 ```
 
 ## Query timing
@@ -111,7 +111,7 @@ The CLI uses this for slow-query warnings (`SLOW_QUERY_MS`) and metrics. Nothing
 ## Exploring data
 
 ```bash
-tylix tinker
+npx tylix tinker
 ```
 
 ```js

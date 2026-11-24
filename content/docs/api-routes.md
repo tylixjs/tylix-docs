@@ -40,7 +40,7 @@ The router supports `get`, `post`, `put`, `patch` and `delete`. Routes are looke
 ## Controllers
 
 ```bash
-tylix make:controller Invoice
+npx tylix make:controller Invoice
 ```
 
 ```ts title="app/controllers/InvoiceController.ts"

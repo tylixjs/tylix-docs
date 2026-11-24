@@ -4,7 +4,7 @@ description: A REPL with your models, services, database and API loaded. Query d
 ---
 
 ```bash
-tylix tinker          # or: npm run tinker
+npx tylix tinker          # or: npm run tinker
 ```
 
 ```text
@@ -18,7 +18,7 @@ tylix> Post.where("published", true).count()
 
 Tinker opens a Node REPL inside your project. Before the prompt appears it:
 
-- builds your app's API the way `tylix dev` does, but without the frontend (no pages, no Vite), so every route and middleware is registered;
+- builds your app's API the way `npx tylix dev` does, but without the frontend (no pages, no Vite), so every route and middleware is registered;
 - connects the database from your config and `.env`;
 - imports every file in `app/models` and `app/services` by name;
 - adds a set of helpers: `request()`, `routes()`, `db`, `show()`, `info()` and more.
@@ -152,7 +152,7 @@ db.run("UPDATE posts SET published = ? WHERE id = ?", [true, 1])
 | Helper | |
 | --- | --- |
 | `tables()` | Tables, or collections on MongoDB, in the connected database |
-| `migrate()` | Run pending migrations, like `tylix migrate` |
+| `migrate()` | Run pending migrations, like `npx tylix migrate` |
 | `seed()` | Run `app/seeders/DatabaseSeeder.ts` (or `.js`) |
 
 Tinker uses the database your config points to. Check `config()` before you write data, especially with a production `.env`.
@@ -164,7 +164,7 @@ dispatch("SendWelcomeEmail", { userId: 1 })                 // queue a job
 dispatch("SendWelcomeEmail", { userId: 1 }, { delay: 60 })  // run in a minute
 ```
 
-`dispatch()` only adds the job to the queue. Run `tylix queue:work` to process it. See [Queues, schedules & channels](/docs/background-jobs).
+`dispatch()` only adds the job to the queue. Run `npx tylix queue:work` to process it. See [Queues, schedules & channels](/docs/background-jobs).
 
 `cache` is the app cache:
 
@@ -210,27 +210,27 @@ With the `log` driver the message is written to the log instead of being sent, s
 `--eval` (or `-e`) runs code with the same models, services and helpers in scope, prints the result and exits. The database connection is closed afterwards.
 
 ```bash
-tylix tinker --eval 'User.count()'
-tylix tinker -e 'Post.where("published", false).pluck("title")'
-tylix tinker -e 'request("GET", "/api/posts", { as: 1 })'
+npx tylix tinker --eval 'User.count()'
+npx tylix tinker -e 'Post.where("published", false).pluck("title")'
+npx tylix tinker -e 'request("GET", "/api/posts", { as: 1 })'
 ```
 
 `await` is implicit for a single expression. For several statements, use `await` and `return` the value you want printed:
 
 ```bash
-tylix tinker --eval 'const u = await User.first(); return u.email'
+npx tylix tinker --eval 'const u = await User.first(); return u.email'
 ```
 
 Nothing is printed when the value is `undefined`. If the code throws, the error goes to stderr and the exit code is 1, so you can use `--eval` in scripts and CI:
 
 ```bash
-tylix tinker -e 'const n = await Post.count(); if (n === 0) throw new Error("no posts")'
+npx tylix tinker -e 'const n = await Post.count(); if (n === 0) throw new Error("no posts")'
 ```
 
 Every helper works in `--eval` too (since 2.1.2; before that, `models()`, `reload()` and `mail()` only worked at the prompt). Names a helper adds are available on the lines after it:
 
 ```bash
-tylix tinker -e 'await mail(); return typeof sendPasswordResetEmail'
+npx tylix tinker -e 'await mail(); return typeof sendPasswordResetEmail'
 ```
 
 ## Leaving

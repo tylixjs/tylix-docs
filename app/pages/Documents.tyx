@@ -199,9 +199,9 @@ template
       </div>
       <div class="tx-window min-w-0">
         <div class="p-5 sm:p-6 font-mono text-[13px] leading-[1.75] overflow-x-auto">
-          <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix make:pdf Invoice</p>
+          <p class="whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>npx tylix make:pdf Invoice</p>
           <p class="whitespace-nowrap text-soft">  app/pdfs/InvoicePdf.js</p>
-          <p class="mt-3 whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>tylix make:export Orders</p>
+          <p class="mt-3 whitespace-nowrap text-ink"><span class="text-faint select-none">$ </span>npx tylix make:export Orders</p>
           <p class="whitespace-nowrap text-soft">  app/exports/OrdersExport.js</p>
         </div>
       </div>

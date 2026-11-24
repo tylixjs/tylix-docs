@@ -18,8 +18,8 @@ Every `.tyx` file in `app/pages` is a page, and its path is its URL:
 Segments are lower-cased, `Index` maps to its folder, and `Home.tyx` also answers `/`. Static routes always win over dynamic ones, so `posts/create.tyx` is never captured by `posts/[id].tyx`.
 
 ```bash
-tylix make:page Reports          # app/pages/Reports.tyx → /reports
-tylix make:page Reports --auth   # only for signed-in users
+npx tylix make:page Reports          # app/pages/Reports.tyx → /reports
+npx tylix make:page Reports --auth   # only for signed-in users
 ```
 
 ## Route parameters

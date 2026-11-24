@@ -26,7 +26,7 @@ state
     "make:permissions writes the models, migration, seeder, an admin API and an admin page at /admin/access"
   ]
   pwaPoints: [
-    "One pwa block in tylix.config, or tylix make:pwa: Tylix serves the manifest and a generated service worker",
+    "One pwa block in tylix.config, or npx tylix make:pwa: Tylix serves the manifest and a generated service worker",
     "Pages are never cached by default, because they can hold a signed-in user's data, and the API is never touched",
     "Each deploy is a new version; open pages offer to switch to it",
     "Install and update prompts for .tyx, React, Vue, Svelte and Angular",

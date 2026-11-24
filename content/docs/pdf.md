@@ -7,7 +7,7 @@ description: Invoices, reports and certificates from plain objects, with tables 
 
 ```bash
 npm install @tylix/pdf
-tylix make:pdf Invoice   # app/pdfs/InvoicePdf.js
+npx tylix make:pdf Invoice   # app/pdfs/InvoicePdf.js
 ```
 
 ## A first document

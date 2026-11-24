@@ -55,5 +55,5 @@ export default defineConfig({
 Files in `app/plugins/` are loaded after those. Plugin routes come after the app's own routes, so the app can override them.
 
 ```bash
-tylix plugins   # what each plugin adds
+npx tylix plugins   # what each plugin adds
 ```

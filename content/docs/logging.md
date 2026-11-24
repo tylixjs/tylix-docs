@@ -43,8 +43,8 @@ logging: {
 The drivers are `stack`, `single`, `daily`, `console`, `stderr`, `null` and `custom`, plus any registered with `Log.extend("name", factory)` or added by a plugin.
 
 ```bash
-tylix log:tail payments --level=error
-tylix log:clear
+npx tylix log:tail payments --level=error
+npx tylix log:clear
 ```
 
 ## Requests

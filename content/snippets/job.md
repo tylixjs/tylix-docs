@@ -1,5 +1,5 @@
 ```js
-// app/jobs/SendInvoice.js (tylix make:job SendInvoice)
+// app/jobs/SendInvoice.js (npx tylix make:job SendInvoice)
 export const SendInvoice = {
   tries: 3,
   backoff: [10, 60, 300],

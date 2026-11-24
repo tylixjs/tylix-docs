@@ -40,6 +40,15 @@ computed
           { label: "Discord", href: "https://discord.gg/tylix" },
           { label: "Contributing", href: "/docs/contributing" }
         ]
+      },
+      {
+        title: "Company",
+        links: [
+          { label: "Ashmif", href: "https://ashmif.com", external: true },
+          { label: "Tylix Flux hosting", href: "https://flux.tylix.dev", external: true },
+          { label: "Web development", href: "https://ashmif.com", external: true },
+          { label: "Contact us", href: "mailto:hello@ashmif.com", external: true }
+        ]
       }
     ]
   }
@@ -50,8 +59,8 @@ computed
 
 template
   <footer class="border-t border-line">
-    <div class="tx-container py-14 grid grid-cols-2 md:grid-cols-6 gap-10">
-      <div class="col-span-2">
+    <div class="tx-container py-14 grid grid-cols-2 md:grid-cols-5 lg:grid-cols-7 gap-10">
+      <div class="col-span-2 md:col-span-5 lg:col-span-2">
         <a href="/" class="inline-flex items-center gap-2.5">
           <img src="/logo-mark.svg" alt="" class="tx-logo h-[20px] w-auto" />
           <span class="text-[16px] font-semibold tracking-[-0.02em]">Tylix</span>
@@ -59,9 +68,16 @@ template
         <p class="mt-4 text-sm text-muted leading-relaxed max-w-xs">
           The full-stack JavaScript framework with the server, the database and the tooling already wired together.
         </p>
-        <a href="/status" class="mt-5 inline-flex items-center gap-2 text-xs text-muted hover:text-ink transition-colors">
-          <span class="tx-dot"></span> System status
+        <a href="https://ashmif.com" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-xs text-muted hover:text-ink hover:border-line-strong transition-colors">
+          <img src="/ashmif-mark.png" alt="" class="h-5 w-5" />
+          <span>A product of <strong class="font-semibold text-ink">Ashmif</strong></span>
         </a>
+        <div class="mt-4 flex flex-col gap-2 text-xs text-muted">
+          <a href="/status" class="inline-flex items-center gap-2 hover:text-ink transition-colors">
+            <span class="tx-dot"></span> System status
+          </a>
+          <a href="mailto:hello@ashmif.com" class="hover:text-ink transition-colors">hello@ashmif.com</a>
+        </div>
       </div>
 
 {{#each col in columns}}
@@ -69,7 +85,11 @@ template
         <h3 class="text-[13px] font-semibold text-ink mb-4">{{ col.title }}</h3>
         <ul class="space-y-2.5">
 {{#each link in col.links}}
+{{#if link.external}}
+          <li><a href="{{ link.href }}" target="_blank" rel="noopener noreferrer" class="text-sm text-muted hover:text-ink transition-colors">{{ link.label }}</a></li>
+{{#else}}
           <li><a href="{{ link.href }}" class="text-sm text-muted hover:text-ink transition-colors">{{ link.label }}</a></li>
+{{/if}}
 {{/each}}
         </ul>
       </div>
@@ -78,7 +98,7 @@ template
 
     <div class="border-t border-line">
       <div class="tx-container py-6 flex flex-wrap items-center justify-between gap-4 text-xs text-faint">
-        <p>© {{ year }} Tylix · Released under the MIT License.</p>
+        <p>© {{ year }} <a href="https://ashmif.com" target="_blank" rel="noopener noreferrer" class="hover:text-ink transition-colors">Ashmif</a> · Tylix is released under the MIT License.</p>
         <a href="https://github.com/tylixjs" class="inline-flex items-center gap-1.5 hover:text-ink transition-colors" target="_blank" rel="noopener noreferrer"><IconGithub class="w-3.5 h-3.5" /> This site is built with Tylix</a>
       </div>
     </div>

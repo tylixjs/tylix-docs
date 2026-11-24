@@ -16,7 +16,7 @@ npx tylix start --workers auto
 - `/health` and `/ready` for load balancers, and `/metrics` for Prometheus with `METRICS=true`.
 - JSON logs carrying each request's `X-Request-Id`, and warnings for slow requests and slow queries.
 
-Every setting is documented in the generated `.env`, and `tylix doctor` shows each value and where it came from.
+Every setting is documented in the generated `.env`, and `npx tylix doctor` shows each value and where it came from.
 
 > [!WARNING]
 > Set `AUTH_SECRET` to 32+ random characters, keep `APP_DEBUG=false`, and set `APP_URL` to your public URL. Turn on `TRUST_PROXY` only behind a proxy you control.
@@ -24,24 +24,24 @@ Every setting is documented in the generated `.env`, and `tylix doctor` shows ea
 ## Deployment adapters
 
 ```bash
-tylix deploy:init              # list the adapters
-tylix deploy:init fly          # Dockerfile + fly.toml (web and queue processes)
+npx tylix deploy:init              # list the adapters
+npx tylix deploy:init fly          # Dockerfile + fly.toml (web and queue processes)
 ```
 
 | Kind | Adapters | Runs |
 | --- | --- | --- |
-| Server | `docker`, `fly`, `render`, `railway`, `pm2` | `tylix start` |
-| Static | `netlify`, `vercel`, `github-pages`, `cloudflare-pages` | publishes `tylix export` |
+| Server | `docker`, `fly`, `render`, `railway`, `pm2` | `npx tylix start` |
+| Static | `netlify`, `vercel`, `github-pages`, `cloudflare-pages` | publishes `npx tylix export` |
 
 Existing files are kept unless you pass `--force`. Plugins can add adapters.
 
 ## Static sites
 
 ```bash
-tylix build && tylix export     # → dist/static
+npx tylix build && npx tylix export     # → dist/static
 ```
 
-`tylix export` runs the production app on a private port and renders `/`, every page without parameters, and every page linked from them. It then writes the HTML, the scripts, styles and images they use, `public/`, and a `404.html`.
+`npx tylix export` runs the production app on a private port and renders `/`, every page without parameters, and every page linked from them. It then writes the HTML, the scripts, styles and images they use, `public/`, and a `404.html`.
 
 Pages with parameters go in `export.paths`:
 

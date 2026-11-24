@@ -7,7 +7,7 @@ description: Styled .xlsx exports from an array of objects, real reports with to
 
 ```bash
 npm install @tylix/excel
-tylix make:export Orders   # app/exports/OrdersExport.js
+npx tylix make:export Orders   # app/exports/OrdersExport.js
 ```
 
 ## One line each way
