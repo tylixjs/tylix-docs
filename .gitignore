@@ -4,4 +4,4 @@ database.sqlite
 dist/
 storage/logs/*.log
 .env.production
-app/tailwind-input.css
+public/tailwind.css
