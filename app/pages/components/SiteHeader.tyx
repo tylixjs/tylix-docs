@@ -13,6 +13,7 @@ computed
   links() {
     return [
       { label: "Docs", href: "/docs" },
+      { label: "Playground", href: "/playground" },
       { label: "Auth", href: "/auth" },
       { label: "Permissions", href: "/permissions" },
       { label: "PDF & Excel", href: "/documents" },
@@ -47,12 +48,12 @@ template
       </nav>
 
       <div class="ml-auto flex items-center gap-1.5">
-        <button type="button" onclick="{{ Site.openSearch() }}" class="tx-search-trigger hidden sm:inline-flex w-56" aria-label="Search the docs">
+        <button type="button" onclick="{{ Site.openSearch() }}" class="tx-search-trigger hidden xl:inline-flex w-56" aria-label="Search the docs">
           <IconSearch class="w-4 h-4" />
           <span class="flex-1 text-left">Search docs</span>
           <kbd>⌘K</kbd>
         </button>
-        <button type="button" onclick="{{ Site.openSearch() }}" class="tx-icon-btn sm:hidden" aria-label="Search the docs">
+        <button type="button" onclick="{{ Site.openSearch() }}" class="tx-icon-btn xl:hidden" aria-label="Search the docs">
           <IconSearch class="w-[18px] h-[18px]" />
         </button>
         <a href="https://github.com/tylixjs" class="tx-icon-btn" aria-label="Tylix on GitHub" target="_blank" rel="noopener noreferrer">

@@ -1,0 +1,1184 @@
+page Playground
+
+// The Tylix Playground: a small real project (Pixel Tasks) to edit in the
+// browser, built by the real compiler on every change
+// (POST /api/playground/compile) and run in a sandboxed iframe, with five
+// guided challenges.
+//
+// This page owns the state. The editor (public/playground/editor.js) and
+// the non-UI helpers (public/playground/workspace.js: saving, share links,
+// challenge checks) are plain modules loaded on mount. The preview reports
+// its console and a small outline of its DOM with postMessage; see
+// app/services/playground/previewBridge.js.
+
+import PageLoading from "./components/PageLoading"
+import { IconPlay, IconRefresh, IconShare, IconPlus, IconTrash, IconFolderOpen, IconFileCode, IconBraces, IconDocument, IconTerminal, IconEye, IconCode, IconLightBulb, IconCheck, IconCircle, IconLockClosed, IconX, IconArrowRight, IconChevronRight, IconSparkles, IconExclamationTriangle, IconXCircle, IconInformationCircle, IconPaintBrush, IconLayers, IconPuzzlePiece, IconBolt, IconRocket, IconTrophy, IconLink, IconCopy, IconPanelBottom } from "tylix-icons"
+
+title "Playground · Tylix"
+
+type PgFile = { path: string; content: string }
+type PgLog = { id: number; level: string; text: string; source: string; file: string; line: number; column: number }
+type PgDiag = { file: string; line: number; column: number; endLine?: number; endColumn?: number; message: string; severity: string; origin?: string }
+type PgStep = { id: string; text: string; hint: string; file: string }
+type PgBadge = { id: string; name: string; icon: string }
+type PgChallenge = { id: string; title: string; intro: string; badge: PgBadge; steps: PgStep[] }
+type PgRow = { kind: string; name: string; path: string; depth: number; key: string }
+type PgDir = { dirs: Map<string, PgDir>; files: string[] }
+type PgBuild = { ok: boolean; html?: string; diagnostics: PgDiag[]; symbols: Record<string, unknown>; build: string; ms: number }
+type PgSnapshot = { title: string; headings: string[]; tasks: { id: string; status: string }[]; text: string }
+type PgMessage = { __tylixPlayground?: boolean; build?: string; type?: string; level?: string; text?: string; snapshot?: PgSnapshot }
+
+const PROTECTED = ["package.json"]
+
+// Not reactive: the editor, the loaded helper module and what the preview
+// last reported.
+let editor: any = null
+let ws: any = null
+let frameBuild = ""
+let baseSnapshot: PgSnapshot | null = null
+let lastSnapshot: PgSnapshot | null = null
+let lastSymbols: Record<string, unknown> = {}
+let buildTimer: any = null
+let saveTimer: any = null
+let toastTimer: any = null
+let buildSeq = 0
+let logSeq = 0
+
+function buildRows(files: PgFile[]): PgRow[] {
+  const root: PgDir = { dirs: new Map(), files: [] }
+  for (const f of files) {
+    const parts = f.path.split("/")
+    let node = root
+    for (const part of parts.slice(0, -1)) {
+      let next = node.dirs.get(part)
+      if (!next) {
+        next = { dirs: new Map(), files: [] }
+        node.dirs.set(part, next)
+      }
+      node = next
+    }
+    node.files.push(f.path)
+  }
+  // Folders first, then files, at every level, like an editor's explorer.
+  const rows: PgRow[] = []
+  const walk = (node: PgDir, depth: number, prefix: string) => {
+    for (const name of Array.from(node.dirs.keys()).sort()) {
+      const path = prefix + name + "/"
+      rows.push({ kind: "dir", name: name, path: path, depth: depth, key: "d:" + path })
+      const child = node.dirs.get(name)
+      if (child) {
+        walk(child, depth + 1, path)
+      }
+    }
+    for (const p of node.files.slice().sort()) {
+      rows.push({ kind: "file", name: p.split("/").pop() ?? p, path: p, depth: depth, key: "f:" + p })
+    }
+  }
+  walk(root, 0, "")
+  return rows
+}
+
+// Served from public/, so loaded by URL at runtime (not bundled).
+function loadModule(url: string): Promise<any> {
+  return import(url)
+}
+
+function baseName(path: string): string {
+  return path.split("/").pop() ?? path
+}
+
+state
+  loading: true
+  loadError: ""
+  started: false
+  files(PgFile[]): []
+  starter(PgFile[]): []
+  active: ""
+  tabs(string[]): []
+  logs(PgLog[]): []
+  diagnostics(PgDiag[]): []
+  buildState: "idle"
+  buildMs: 0
+  builds: 0
+  stale: false
+  autoRun: true
+  pane: "code"
+  consoleOpen: true
+  challenges(PgChallenge[]): []
+  current: 0
+  done(string[]): []
+  badges(string[]): []
+  hintOpen: ""
+  botText: "Hi, I'm Tylix Bot. The app in the preview is real Tylix, compiled from these files on every change. Let's make it yours."
+  botMood: "wave"
+  toastText: ""
+  shared: false
+  shareUrl: ""
+  newFileOpen: false
+  newFilePath: ""
+  newFileError: ""
+  dialog: ""
+  dialogPath: ""
+  pendingShared(PgFile[]): []
+  cursorText: "Ln 1, Col 1"
+  previewTitle: "Pixel Tasks"
+  icons(string[]): []
+
+computed
+  rows() {
+    return buildRows(this.files)
+  }
+
+  errorCount() {
+    return this.logs.filter((l) => l.level is "error").length
+  }
+
+  warningCount() {
+    return this.logs.filter((l) => l.level is "warn").length
+  }
+
+  challenge() {
+    return this.challenges[this.current] ?? null
+  }
+
+  unlocked() {
+    let n = 1
+    for (let i = 0; i < this.challenges.length - 1; i++) {
+      const c = this.challenges[i]
+      if (c.steps.every((s) => this.done.includes(c.id + "/" + s.id))) {
+        n = i + 2
+      } else {
+        break
+      }
+    }
+    return Math.min(n, this.challenges.length)
+  }
+
+  stepsTotal() {
+    return this.challenges.reduce((sum, c) => sum + c.steps.length, 0)
+  }
+
+  progressPct() {
+    return this.stepsTotal ? Math.round((this.done.length / this.stepsTotal) * 100) : 0
+  }
+
+  challengeComplete() {
+    const c = this.challenge
+    return c ? c.steps.every((s) => this.done.includes(c.id + "/" + s.id)) : false
+  }
+
+  allComplete() {
+    return this.challenges.length > 0 and this.badges.length >= this.challenges.length
+  }
+
+  readOnly() {
+    return PROTECTED.includes(this.active)
+  }
+
+  buildLabel() {
+    if this.buildState is "building" {
+      return "Building…"
+    }
+    if this.buildState is "ok" {
+      return "Built in " + this.buildMs + " ms"
+    }
+    if this.buildState is "error" {
+      return "Build failed"
+    }
+    if this.buildState is "offline" {
+      return "Compiler unreachable"
+    }
+    return "Ready"
+  }
+
+  hasNext() {
+    return this.current < this.challenges.length - 1
+  }
+
+  hasProgress() {
+    return this.done.length > 0
+  }
+
+action
+  // ── Start-up ─────────────────────────────────────────────────────────
+
+  async boot() {
+    let editorModule: any = null
+    try {
+      const loaded = await Promise.all([loadModule("/playground/editor.js"), loadModule("/playground/workspace.js")])
+      editorModule = loaded[0]
+      ws = loaded[1]
+    } catch (err) {
+      this.loadError = "The playground couldn't load. Refresh the page to try again."
+      this.loading = false
+      return null
+    }
+    this.challenges = ws.challengeSummaries() as PgChallenge[]
+
+    const result = await useApi("/api/playground/starter")
+    if not result.ok {
+      this.loadError = "The starter project couldn't be loaded. Refresh the page to try again."
+      this.loading = false
+      return null
+    }
+    const payload = result.data as { data: { files: PgFile[] } }
+    this.starter = payload.data.files
+
+    useApi("/api/playground/meta").then((meta) => {
+      if meta.ok {
+        const body = meta.data as { data: { icons: string[] } }
+        this.icons = body.data.icons
+        this.updateCompletions()
+      }
+    })
+
+    const saved = ws.loadSaved()
+    let files: PgFile[] = this.starter
+    if saved {
+      files = saved.files as PgFile[]
+      this.done = Array.isArray(saved.done) ? saved.done : []
+      this.badges = Array.isArray(saved.badges) ? saved.badges : []
+      this.current = typeof saved.current is "number" ? saved.current : 0
+      this.autoRun = saved.autoRun is not false
+      this.started = saved.started is true
+      this.tabs = Array.isArray(saved.tabs) ? saved.tabs : []
+      this.active = typeof saved.active is "string" ? saved.active : ""
+      this.shared = saved.shared is true
+    }
+    this.files = files.map((f) => ({ path: f.path, content: f.content }))
+
+    // A share link: #p=<project>. Offer it, unless there's nothing to lose.
+    const code = ws.sharedCodeFromHash()
+    if code {
+      history.replaceState(null, "", window.location.pathname)
+      try {
+        const sharedFiles = (await ws.decodeProject(code)) as PgFile[]
+        if this.isChanged() {
+          this.pendingShared = sharedFiles
+          this.dialog = "shared"
+        } else {
+          this.useFiles(sharedFiles)
+          this.say("wave", "You opened a shared project. It's your copy now: change anything you like.")
+        }
+        this.started = true
+      } catch (err) {
+        this.showToast("That share link is incomplete, so it couldn't be opened.")
+      }
+    }
+
+    this.tabs = this.tabs.filter((t) => this.files.some((f) => f.path is t))
+    if not this.files.some((f) => f.path is this.active) {
+      this.active = this.files.some((f) => f.path is "app/pages/Home.tyx") ? "app/pages/Home.tyx" : (this.files[0]?.path ?? "")
+    }
+    if this.active and not this.tabs.includes(this.active) {
+      this.tabs = [...this.tabs, this.active]
+    }
+    this.current = Math.min(this.current, Math.max(0, this.unlocked - 1))
+    this.loading = false
+
+    window.addEventListener("message", (event) => this.onFrameMessage(event))
+    window.addEventListener("pagehide", () => this.persist())
+    setTimeout(() => this.mountEditor(editorModule), 0)
+  }
+
+  mountEditor(editorModule: any) {
+    const host = document.getElementById("pg-editor")
+    if not host {
+      return null
+    }
+    editor = editorModule.createEditor(host, {
+      onChange: (path: string, value: string) => this.onEdit(path, value),
+      onRun: () => this.run(),
+      onCursor: (pos: { line: number; column: number }) => {
+        this.cursorText = "Ln " + pos.line + ", Col " + pos.column
+      }
+    })
+    this.openFile(this.active)
+    this.run()
+  }
+
+  isChanged() {
+    if this.files.length is not this.starter.length {
+      return true
+    }
+    return this.starter.some((s) => this.files.find((f) => f.path is s.path)?.content is not s.content)
+  }
+
+  useFiles(files: PgFile[]) {
+    this.files = files.map((f) => ({ path: f.path, content: f.content }))
+    const home = this.files.some((f) => f.path is "app/pages/Home.tyx") ? "app/pages/Home.tyx" : (this.files[0]?.path ?? "")
+    this.tabs = home ? [home] : []
+    this.active = home
+  }
+
+  start() {
+    this.started = true
+    this.persist()
+    setTimeout(() => {
+      editor?.refresh()
+      window.scrollTo({ top: 0, behavior: "instant" })
+    }, 30)
+  }
+
+  // ── Files and tabs ───────────────────────────────────────────────────
+
+  openFile(path: string) {
+    const file = this.files.find((f) => f.path is path)
+    if not file {
+      return null
+    }
+    this.active = path
+    if not this.tabs.includes(path) {
+      this.tabs = [...this.tabs, path]
+    }
+    this.pane = "code"
+    if editor {
+      editor.open(path, file.content)
+      editor.readOnly(PROTECTED.includes(path))
+      editor.setDiagnostics(this.diagnostics)
+      this.updateCompletions()
+    }
+    this.scheduleSave()
+  }
+
+  closeTab(path: string, event: Event) {
+    event.stopPropagation()
+    const index = this.tabs.indexOf(path)
+    this.tabs = this.tabs.filter((t) => t is not path)
+    if this.active is path {
+      const next = this.tabs[Math.max(0, index - 1)] ?? ""
+      if next {
+        this.openFile(next)
+      } else {
+        this.active = ""
+      }
+    }
+  }
+
+  onEdit(path: string, value: string) {
+    const file = this.files.find((f) => f.path is path)
+    if not file {
+      return null
+    }
+    file.content = value
+    this.scheduleSave()
+    clearTimeout(buildTimer)
+    if this.autoRun {
+      buildTimer = setTimeout(() => this.run(), 650)
+    } else {
+      this.stale = true
+    }
+  }
+
+  openNewFile() {
+    this.newFileOpen = true
+    this.newFileError = ""
+    this.newFilePath = "app/pages/components/"
+    this.pane = "guide"
+    setTimeout(() => {
+      const input = document.getElementById("pg-new-file") as HTMLInputElement | null
+      if input {
+        input.focus()
+        input.setSelectionRange(input.value.length, input.value.length)
+      }
+    }, 30)
+  }
+
+  cancelNewFile() {
+    this.newFileOpen = false
+    this.newFileError = ""
+  }
+
+  createFile() {
+    const check = ws.validNewPath(this.newFilePath, this.files) as { path?: string; error?: string }
+    if check.error or not check.path {
+      this.newFileError = check.error ?? "That name doesn't work."
+      return null
+    }
+    const path = check.path
+    this.files = [...this.files, { path: path, content: ws.newFileTemplate(path) as string }]
+    this.newFileOpen = false
+    this.openFile(path)
+    this.say("think", "New file: " + baseName(path) + ". It's part of the build now.")
+    this.queueRun()
+  }
+
+  askDelete(path: string, event: Event) {
+    event.stopPropagation()
+    this.dialogPath = path
+    this.dialog = "delete"
+  }
+
+  deleteFile() {
+    const path = this.dialogPath
+    this.files = this.files.filter((f) => f.path is not path)
+    this.tabs = this.tabs.filter((t) => t is not path)
+    this.dialog = ""
+    if this.active is path {
+      const next = this.tabs[this.tabs.length - 1] ?? this.files[0]?.path ?? ""
+      if next {
+        this.openFile(next)
+      } else {
+        this.active = ""
+      }
+    }
+    this.queueRun()
+  }
+
+  resetProject() {
+    this.useFiles(this.starter)
+    this.dialog = ""
+    this.openFile(this.active)
+    this.showToast("Pixel Tasks is back to how it started. Your badges are kept.")
+    this.say("wave", "Fresh start. Everything's back to the original Pixel Tasks.")
+    this.run()
+  }
+
+  openShared() {
+    this.useFiles(this.pendingShared)
+    this.pendingShared = []
+    this.dialog = ""
+    this.openFile(this.active)
+    this.say("wave", "You opened a shared project. It's your copy now: change anything you like.")
+    this.run()
+  }
+
+  keepMine() {
+    this.pendingShared = []
+    this.dialog = ""
+  }
+
+  // ── Builds ───────────────────────────────────────────────────────────
+
+  queueRun() {
+    clearTimeout(buildTimer)
+    buildTimer = setTimeout(() => this.run(), 200)
+  }
+
+  toggleAutoRun() {
+    this.autoRun = not this.autoRun
+    if this.autoRun and this.stale {
+      this.run()
+    }
+    this.scheduleSave()
+  }
+
+  async run() {
+    clearTimeout(buildTimer)
+    buildSeq = buildSeq + 1
+    const seq = buildSeq
+    const wasError = this.buildState is "error"
+    this.buildState = "building"
+    const files = this.files.map((f) => ({ path: f.path, content: f.content }))
+    const result = await useApi("/api/playground/compile", { method: "POST", body: { files: files } })
+    if seq is not buildSeq {
+      return null
+    }
+    if not result.ok {
+      this.buildState = "offline"
+      this.addLog("error", result.error ?? "The compiler couldn't be reached.", "build", "", 0, 0)
+      this.say("oops", result.status is 429 ? "Whoa, that's a lot of builds. Give it a few seconds." : "I can't reach the compiler right now. Check your connection and press Run.")
+      return null
+    }
+    const build = (result.data as { data: PgBuild }).data
+    lastSymbols = build.symbols ?? {}
+    this.builds = this.builds + 1
+    this.buildMs = build.ms
+    this.diagnostics = build.diagnostics
+    editor?.setDiagnostics(build.diagnostics)
+    this.updateCompletions()
+
+    const entries: PgLog[] = []
+    const errors = build.diagnostics.filter((d) => d.severity is not "warning")
+    if build.ok {
+      entries.push(this.logEntry("info", "Build #" + this.builds + " compiled " + this.files.length + " files in " + build.ms + " ms", "build", "", 0, 0))
+    } else {
+      entries.push(this.logEntry("error", "Build #" + this.builds + " failed with " + errors.length + (errors.length is 1 ? " problem" : " problems") + ". The preview shows the last version that built.", "build", "", 0, 0))
+    }
+    for (const d of build.diagnostics) {
+      entries.push(this.logEntry(d.severity is "warning" ? "warn" : "error", d.message, "compiler", d.file, d.line, d.column))
+    }
+
+    if build.ok {
+      this.buildState = "ok"
+      this.stale = false
+      this.logs = entries
+      frameBuild = build.build
+      baseSnapshot = null
+      lastSnapshot = null
+      const frame = document.getElementById("pg-frame") as HTMLIFrameElement | null
+      if frame {
+        frame.srcdoc = build.html ?? ""
+      }
+      const warning = build.diagnostics.find((d) => d.severity is "warning")
+      if warning {
+        this.say("think", baseName(warning.file) + ", line " + warning.line + ": " + warning.message)
+      } else if wasError {
+        this.say("happy", "Fixed! It builds again, and the preview is up to date.")
+      }
+    } else {
+      this.buildState = "error"
+      this.logs = [...this.logs.filter((l) => l.source is "preview"), ...entries].slice(-300)
+      const first = errors[0]
+      if first {
+        const message = /[.!?]$/.test(first.message) ? first.message : first.message + "."
+        this.say("oops", "The compiler stopped in " + baseName(first.file) + " on line " + first.line + ": " + message + " Click the error in the console to jump there.")
+      }
+    }
+    this.scrollConsole()
+    this.evaluate()
+  }
+
+  logEntry(level: string, text: string, source: string, file: string, line: number, column: number) {
+    logSeq = logSeq + 1
+    return { id: logSeq, level: level, text: text, source: source, file: file, line: line, column: column }
+  }
+
+  addLog(level: string, text: string, source: string, file: string, line: number, column: number) {
+    const next = [...this.logs, this.logEntry(level, text, source, file, line, column)]
+    this.logs = next.length > 300 ? next.slice(-300) : next
+    this.scrollConsole()
+  }
+
+  scrollConsole() {
+    setTimeout(() => {
+      const box = document.getElementById("pg-console-list")
+      if box {
+        box.scrollTop = box.scrollHeight
+      }
+    }, 0)
+  }
+
+  clearConsole() {
+    this.logs = []
+  }
+
+  jumpTo(log: PgLog) {
+    if not log.file or not this.files.some((f) => f.path is log.file) {
+      return null
+    }
+    this.openFile(log.file)
+    setTimeout(() => editor?.reveal(log.line, log.column), 0)
+  }
+
+  onFrameMessage(event: MessageEvent) {
+    const frame = document.getElementById("pg-frame") as HTMLIFrameElement | null
+    if not frame or event.source is not frame.contentWindow {
+      return null
+    }
+    const data = event.data as PgMessage
+    if not data or data.__tylixPlayground is not true or data.build is not frameBuild {
+      return null
+    }
+    if data.type is "console" {
+      this.addLog(data.level ?? "log", data.text ?? "", "preview", "", 0, 0)
+      if data.level is "error" {
+        this.say("oops", "The app hit an error while running. It's in the console: " + (data.text ?? "").slice(0, 160))
+      }
+    } else if data.type is "snapshot" and data.snapshot {
+      lastSnapshot = data.snapshot
+      if not baseSnapshot {
+        baseSnapshot = data.snapshot
+      }
+      this.previewTitle = data.snapshot.title
+      this.evaluate()
+    }
+  }
+
+  updateCompletions() {
+    if not editor {
+      return null
+    }
+    const components = this.files
+      .filter((f) => f.path.startsWith("app/pages/components/") and f.path.endsWith(".tyx"))
+      .map((f) => baseName(f.path).replace(/\.tyx$/, ""))
+    const capabilities: Record<string, string> = {}
+    for (const f of this.files) {
+      if f.path.startsWith("app/capabilities/") and f.path.endsWith(".tyx") {
+        capabilities[baseName(f.path).replace(/\.tyx$/, "")] = f.path
+      }
+    }
+    editor.setCompletions({ symbols: lastSymbols, components: components, icons: this.icons, capabilities: capabilities })
+  }
+
+  // ── Challenges ───────────────────────────────────────────────────────
+
+  stepKey(step: PgStep) {
+    return (this.challenge?.id ?? "") + "/" + step.id
+  }
+
+  stepDone(step: PgStep) {
+    return this.done.includes(this.stepKey(step))
+  }
+
+  challengeDone(index: number) {
+    const c = this.challenges[index]
+    return c ? c.steps.every((s) => this.done.includes(c.id + "/" + s.id)) : false
+  }
+
+  evaluate() {
+    if not ws or this.challenges.length is 0 {
+      return null
+    }
+    const files: Record<string, string> = {}
+    for (const f of this.files) {
+      files[f.path] = f.content
+    }
+    const starter: Record<string, string> = {}
+    for (const f of this.starter) {
+      starter[f.path] = f.content
+    }
+    const ctx = {
+      files: files,
+      starter: starter,
+      ok: this.buildState is "ok",
+      symbols: lastSymbols,
+      base: baseSnapshot,
+      snapshot: lastSnapshot,
+      events: { shared: this.shared }
+    }
+    const passing = ws.evaluate(ctx, this.done, this.unlocked) as string[]
+    if passing.length is 0 {
+      return null
+    }
+    this.done = [...this.done, ...passing]
+
+    let unlockedBadge = ""
+    this.challenges.forEach((c, i) => {
+      if this.challengeDone(i) and not this.badges.includes(c.badge.id) {
+        this.badges = [...this.badges, c.badge.id]
+        unlockedBadge = c.badge.name
+      }
+    })
+    if unlockedBadge {
+      if this.allComplete {
+        this.say("happy", "Badge unlocked: " + unlockedBadge + ". That's all five! You've built, changed and shipped a real Tylix app. Ready for your own? Run npm create tylix@latest.")
+      } else {
+        this.say("happy", "Badge unlocked: " + unlockedBadge + ". Nicely done. The next challenge is open when you are.")
+      }
+      this.showToast("Badge unlocked: " + unlockedBadge)
+    } else {
+      const key = passing[passing.length - 1]
+      const cid = key.split("/")[0]
+      const sid = key.split("/")[1]
+      const step = this.challenges.find((c) => c.id is cid)?.steps.find((s) => s.id is sid)
+      const cheers = ["Nice!", "That's it!", "Perfect.", "Spot on."]
+      this.say("happy", cheers[this.done.length % cheers.length] + " Done: " + (step?.text ?? "a step") + "")
+    }
+    this.persist()
+  }
+
+  selectChallenge(index: number) {
+    if index < this.unlocked {
+      this.current = index
+      this.hintOpen = ""
+      this.say("wave", this.challenges[index].intro)
+      this.scheduleSave()
+    }
+  }
+
+  nextChallenge() {
+    this.selectChallenge(Math.min(this.current + 1, this.challenges.length - 1))
+  }
+
+  toggleHint(step: PgStep) {
+    const key = this.stepKey(step)
+    this.hintOpen = this.hintOpen is key ? "" : key
+  }
+
+  goToStep(step: PgStep) {
+    if step.file {
+      this.openFile(step.file)
+    } else {
+      this.pane = "preview"
+    }
+  }
+
+  say(mood: string, text: string) {
+    this.botMood = mood
+    this.botText = text
+  }
+
+  isLocked(index: number) {
+    return index >= this.unlocked
+  }
+
+  badgeEarned(id: string) {
+    return this.badges.includes(id)
+  }
+
+  // ── Sharing and saving ───────────────────────────────────────────────
+
+  async share() {
+    if not ws {
+      return null
+    }
+    const code = (await ws.encodeProject(this.files)) as string
+    this.shareUrl = window.location.origin + "/playground#p=" + code
+    let copied = false
+    try {
+      await navigator.clipboard.writeText(this.shareUrl)
+      copied = true
+    } catch (err) {
+      copied = false
+    }
+    this.dialog = "share"
+    if copied {
+      this.showToast("Link copied")
+    }
+    this.shared = true
+    this.evaluate()
+    this.persist()
+  }
+
+  async copyShareUrl() {
+    try {
+      await navigator.clipboard.writeText(this.shareUrl)
+      this.showToast("Link copied")
+    } catch (err) {
+      const input = document.getElementById("pg-share-url") as HTMLInputElement | null
+      input?.select()
+    }
+  }
+
+  closeDialog() {
+    this.dialog = ""
+  }
+
+  showToast(text: string) {
+    this.toastText = text
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => {
+      this.toastText = ""
+    }, 2600)
+  }
+
+  scheduleSave() {
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => this.persist(), 400)
+  }
+
+  persist() {
+    if not ws or this.loading {
+      return null
+    }
+    ws.save({
+      v: 1,
+      started: this.started,
+      files: this.files,
+      tabs: this.tabs,
+      active: this.active,
+      done: this.done,
+      badges: this.badges,
+      current: this.current,
+      autoRun: this.autoRun,
+      shared: this.shared
+    })
+  }
+
+  // ── Small view helpers ───────────────────────────────────────────────
+
+  fileKind(path: string) {
+    if path.endsWith(".tyx") {
+      return "tyx"
+    }
+    if path.endsWith(".css") {
+      return "css"
+    }
+    if path.endsWith(".json") {
+      return "json"
+    }
+    return "text"
+  }
+
+  fileHasError(path: string) {
+    return this.diagnostics.some((d) => d.file is path and d.severity is not "warning")
+  }
+
+  tabName(path: string) {
+    return baseName(path)
+  }
+
+  logWhere(log: PgLog) {
+    return log.file ? baseName(log.file) + ":" + log.line : ""
+  }
+
+onMount
+  async {
+    await this.boot()
+  }
+
+template
+  <div class="pg-root">
+{{#if loading}}
+    <div class="pg-loading" data-page-loader="true"><PageLoading label="Loading the playground" /></div>
+{{/if}}
+
+{{#if loadError}}
+    <div class="tx-container py-24 max-w-xl text-center">
+      <IconExclamationTriangle class="w-6 h-6 mx-auto text-peach" />
+      <p class="mt-4 font-medium text-ink">{{ loadError }}</p>
+      <a href="/docs" class="tx-link inline-block mt-4">Read the docs instead</a>
+    </div>
+{{/if}}
+
+    <section class="pg-intro" class:is-hidden="{{ loading or started or loadError }}">
+      <div class="tx-dots absolute inset-0 opacity-60" aria-hidden="true"></div>
+      <div class="relative tx-container pt-14 sm:pt-20 pb-16 sm:pb-24 grid lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+        <div class="lg:col-span-5">
+          <p class="tx-eyebrow">Tylix Playground</p>
+          <p class="mt-6 inline-flex items-center gap-2 h-7 px-2.5 rounded-full border border-line bg-canvas text-[13px] text-soft">
+            <span class="tx-dot"></span> Ready to code
+          </p>
+          <h1 class="tx-display mt-5 text-ink">Build something awesome.</h1>
+          <p class="tx-lead mt-5 max-w-[32rem]">Your first Tylix app is waiting. Change the code, run it, and see what happens.</p>
+          <p class="mt-3 text-[15px] text-muted">No installation. No setup. Just you and Tylix.</p>
+          <div class="mt-9 flex flex-wrap items-center gap-3">
+            <button type="button" class="tx-btn tx-btn-primary" onclick="{{ start() }}">
+              {{ hasProgress ? "Continue coding" : "Start coding" }} <IconArrowRight class="w-4 h-4" />
+            </button>
+            <a href="/docs/pages" class="tx-btn tx-btn-outline">Learn the .tyx language</a>
+          </div>
+          <ul class="mt-10 grid gap-3 text-[14px] text-soft">
+            <li class="flex gap-3"><IconBolt class="w-4 h-4 mt-0.5 text-brand dark:text-link shrink-0" /><span>The real Tylix compiler builds your code on every change.</span></li>
+            <li class="flex gap-3"><IconEye class="w-4 h-4 mt-0.5 text-brand dark:text-link shrink-0" /><span>A live preview, a console and errors that point at the line.</span></li>
+            <li class="flex gap-3"><IconTrophy class="w-4 h-4 mt-0.5 text-brand dark:text-link shrink-0" /><span>Five short challenges, from your first edit to a shareable link.</span></li>
+          </ul>
+        </div>
+
+        <div class="lg:col-span-7 min-w-0">
+          <div class="tx-window pg-hero-window">
+            <div class="flex items-center gap-2 h-11 px-4 border-b border-line text-xs font-mono text-muted">
+              <IconFileCode class="w-3.5 h-3.5" /> app/pages/Home.tyx
+              <span class="ml-auto inline-flex items-center gap-1.5 text-mint"><span class="tx-dot"></span> Built in 142 ms</span>
+            </div>
+            <div class="grid sm:grid-cols-2">
+              <div class="pg-hero-code" aria-hidden="true">
+                <div><span class="t-decl">page</span> <span class="t-name">Home</span></div>
+                <div>&nbsp;</div>
+                <div><span class="t-section">uses</span></div>
+                <div class="pl-[2ch]"><span class="t-type">Tasks</span></div>
+                <div>&nbsp;</div>
+                <div><span class="t-section">state</span></div>
+                <div class="pl-[2ch]"><span class="t-prop">heading</span><span class="t-punct">:</span> <span class="t-string pg-hero-caret">"Ada's Tasks"</span></div>
+                <div class="pl-[2ch]"><span class="t-prop">draft</span><span class="t-punct">:</span> <span class="t-string">""</span></div>
+                <div>&nbsp;</div>
+                <div><span class="t-section">template</span></div>
+                <div class="pl-[2ch]"><span class="t-punct">&lt;</span><span class="t-tag">h1</span><span class="t-punct">&gt;</span><span class="t-brace">&#123;&#123;</span> heading <span class="t-brace">&#125;&#125;</span><span class="t-punct">&lt;/</span><span class="t-tag">h1</span><span class="t-punct">&gt;</span></div>
+                <div class="pl-[2ch]"><span class="t-brace">&#123;&#123;</span><span class="t-block">#each</span> task <span class="t-wordop">in</span> Tasks.tasks<span class="t-brace">&#125;&#125;</span></div>
+                <div class="pl-[4ch]"><span class="t-punct">&lt;</span><span class="t-component">TaskCard</span> <span class="t-attr">task</span><span class="t-punct">=</span><span class="t-attrstr">"</span><span class="t-brace">&#123;&#123;</span> task <span class="t-brace">&#125;&#125;</span><span class="t-attrstr">"</span> <span class="t-punct">/&gt;</span></div>
+                <div class="pl-[2ch]"><span class="t-brace">&#123;&#123;</span><span class="t-block">/each</span><span class="t-brace">&#125;&#125;</span></div>
+              </div>
+              <div class="pg-hero-app" aria-hidden="true">
+                <p class="pg-hero-h1">Ada's Tasks</p>
+                <p class="pg-hero-sub">3 tasks, 1 done</p>
+                <div class="pg-hero-card"><i class="is-done"></i><span class="line-through opacity-60">Sketch the pixel logo</span></div>
+                <div class="pg-hero-card"><i class="is-doing"></i><span>Wire up the task form</span></div>
+                <div class="pg-hero-card"><i></i><span>Pick a colour palette</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-5 flex flex-wrap items-center gap-2 text-[13px] text-muted">
+            <span class="mr-1">5 challenges, 5 badges:</span>
+{{#each c in challenges}}
+            <span class="pg-badge-chip" class:is-earned="{{ badgeEarned(c.badge.id) }}" title="{{ c.badge.name }}: {{ c.title }}">
+{{#if c.badge.icon is "paint"}}<IconPaintBrush class="w-3.5 h-3.5" />{{#else if c.badge.icon is "layers"}}<IconLayers class="w-3.5 h-3.5" />{{#else if c.badge.icon is "puzzle"}}<IconPuzzlePiece class="w-3.5 h-3.5" />{{#else if c.badge.icon is "bolt"}}<IconBolt class="w-3.5 h-3.5" />{{#else}}<IconRocket class="w-3.5 h-3.5" />{{/if}}
+              {{ c.badge.name }}
+            </span>
+{{/each}}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="pg-app" class:is-on="{{ started and not loading and not loadError }}" data-pane="{{ pane }}">
+      <div class="pg-toolbar">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="pg-project-mark" aria-hidden="true"></span>
+          <span class="font-medium text-ink text-[14px] truncate">pixel-tasks</span>
+          <span class="pg-build" class:is-ok="{{ buildState is 'ok' }}" class:is-error="{{ buildState is 'error' or buildState is 'offline' }}" class:is-busy="{{ buildState is 'building' }}" role="status" aria-live="polite">
+            <span class="pg-build-dot"></span><span class="hidden sm:inline">{{ buildLabel }}</span>
+          </span>
+        </div>
+        <div class="ml-auto flex items-center gap-1.5">
+          <label class="pg-switch hidden md:inline-flex" title="Build after every pause in typing">
+            <input type="checkbox" checked="{{ autoRun }}" onchange="{{ toggleAutoRun() }}" />
+            <span class="pg-switch-track"><span></span></span>
+            Auto-run
+          </label>
+          <button type="button" class="tx-btn tx-btn-primary tx-btn-sm pg-run" onclick="{{ run() }}" title="Run (Ctrl+Enter)" class:is-stale="{{ stale }}">
+            <IconPlay class="w-3.5 h-3.5" /> Run
+          </button>
+          <button type="button" class="tx-btn tx-btn-ghost tx-btn-sm" onclick="{{ dialog = 'reset' }}" title="Reset the project">
+            <IconRefresh class="w-3.5 h-3.5" /><span class="hidden sm:inline">Reset</span>
+          </button>
+          <button type="button" class="tx-btn tx-btn-outline tx-btn-sm" onclick="{{ share() }}" title="Copy a link to this project">
+            <IconShare class="w-3.5 h-3.5" /><span class="hidden sm:inline">Share</span>
+          </button>
+        </div>
+      </div>
+
+      <nav class="pg-panes" aria-label="Playground panels">
+        <button type="button" class:is-on="{{ pane is 'guide' }}" onclick="{{ pane = 'guide' }}"><IconLightBulb class="w-4 h-4" /> Guide</button>
+        <button type="button" class:is-on="{{ pane is 'code' }}" onclick="{{ pane = 'code' }}"><IconCode class="w-4 h-4" /> Code</button>
+        <button type="button" class:is-on="{{ pane is 'preview' }}" onclick="{{ pane = 'preview' }}"><IconEye class="w-4 h-4" /> Preview</button>
+        <button type="button" class:is-on="{{ pane is 'console' }}" onclick="{{ pane = 'console' }}"><IconTerminal class="w-4 h-4" /> Console<span class="pg-count" class:is-hidden="{{ errorCount is 0 }}">{{ errorCount }}</span></button>
+      </nav>
+
+      <aside class="pg-side" aria-label="Challenges and files">
+        <div class="pg-bot-row">
+          <div class="pg-bot" class:is-happy="{{ botMood is 'happy' }}" class:is-oops="{{ botMood is 'oops' }}" class:is-think="{{ botMood is 'think' }}" aria-hidden="true">
+            <svg viewBox="0 0 40 40">
+              <line x1="20" y1="4" x2="20" y2="9" class="pg-bot-stem" />
+              <circle cx="20" cy="4" r="2.4" class="pg-bot-tip" />
+              <rect x="5" y="9" width="30" height="25" rx="8" class="pg-bot-head" />
+              <rect x="12" y="17" width="4" height="6" rx="2" class="pg-bot-eye" />
+              <rect x="24" y="17" width="4" height="6" rx="2" class="pg-bot-eye" />
+              <path d="M11.5 21 q2.5 -3.5 5 0 M23.5 21 q2.5 -3.5 5 0" class="pg-bot-eye-happy" />
+              <path d="M15.5 27.5 q4.5 3 9 0" class="pg-bot-mouth" />
+              <path d="M16 29.5 q4 -2.5 8 0" class="pg-bot-mouth-oops" />
+            </svg>
+          </div>
+          <div class="pg-bubble" aria-live="polite">
+            <p class="pg-bubble-name">Tylix Bot</p>
+            <p>{{ botText }}</p>
+          </div>
+        </div>
+
+{{#if challenge}}
+        <section class="pg-challenge" aria-labelledby="pg-challenge-title">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-[12px] font-mono text-muted">Challenge {{ current + 1 }} of {{ challenges.length }}</p>
+            <p class="text-[12px] font-mono text-muted">{{ progressPct }}%</p>
+          </div>
+          <div class="pg-steps-bar" role="tablist" aria-label="Challenges">
+{{#each c, i in challenges}}
+            <button type="button" role="tab" class="pg-seg" class:is-done="{{ challengeDone(i) }}" class:is-current="{{ i is current }}" class:is-locked="{{ isLocked(i) }}" aria-selected="{{ i is current }}" aria-label="{{ isLocked(i) ? c.title + ' (locked)' : c.title }}" title="{{ c.title }}" onclick="{{ selectChallenge(i) }}"></button>
+{{/each}}
+          </div>
+          <h2 id="pg-challenge-title" class="mt-4 text-[17px] font-semibold tracking-[-0.01em] text-ink">{{ challenge.title }}</h2>
+          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted">{{ challenge.intro }}</p>
+
+          <ol class="mt-4 grid gap-2">
+{{#each step in challenge.steps}}
+            <li class="pg-step" class:is-done="{{ stepDone(step) }}">
+              <div class="flex gap-2.5 items-start">
+                <span class="pg-step-check">
+{{#if stepDone(step)}}
+                  <IconCheck class="w-3 h-3" />
+{{/if}}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-[13.5px] leading-snug text-ink">{{ step.text }}</p>
+                  <div class="mt-1.5 flex flex-wrap gap-3">
+                    <button type="button" class="pg-mini-link" onclick="{{ goToStep(step) }}">{{ step.file ? "Open " + tabName(step.file) : "Show preview" }}</button>
+                    <button type="button" class="pg-mini-link" onclick="{{ toggleHint(step) }}" aria-expanded="{{ hintOpen is stepKey(step) }}">{{ hintOpen is stepKey(step) ? "Hide hint" : "Hint" }}</button>
+                  </div>
+{{#if hintOpen is stepKey(step)}}
+                  <div class="pg-hint">{{ step.hint }}</div>
+{{/if}}
+                </div>
+              </div>
+            </li>
+{{/each}}
+          </ol>
+
+          <div class="mt-4 flex items-center gap-2.5 text-[12.5px]">
+            <span class="pg-reward" class:is-earned="{{ badgeEarned(challenge.badge.id) }}">
+              <IconTrophy class="w-3.5 h-3.5" /> {{ badgeEarned(challenge.badge.id) ? "Earned" : "Reward" }}: {{ challenge.badge.name }}
+            </span>
+{{#if challengeComplete and hasNext}}
+            <button type="button" class="tx-btn tx-btn-ink tx-btn-sm ml-auto" onclick="{{ nextChallenge() }}">Next <IconChevronRight class="w-3.5 h-3.5" /></button>
+{{/if}}
+          </div>
+{{#if allComplete and not hasNext}}
+          <div class="pg-finale">
+            <p class="font-semibold text-ink">All five badges. Now make your own.</p>
+            <p class="mt-1 text-muted">Everything you used here works the same in a real project, with a server, a database and auth around it.</p>
+            <p class="pg-finale-cmd">npm create tylix@latest</p>
+            <a href="/docs/installation" class="tx-link inline-flex items-center gap-1 mt-2">Installation guide <IconArrowRight class="w-3.5 h-3.5" /></a>
+          </div>
+{{/if}}
+        </section>
+{{/if}}
+
+        <div class="pg-badges" aria-label="Badges">
+{{#each c in challenges}}
+          <span class="pg-badge" class:is-earned="{{ badgeEarned(c.badge.id) }}" title="{{ badgeEarned(c.badge.id) ? c.badge.name : c.badge.name + ' (locked)' }}">
+{{#if c.badge.icon is "paint"}}<IconPaintBrush class="w-4 h-4" />{{#else if c.badge.icon is "layers"}}<IconLayers class="w-4 h-4" />{{#else if c.badge.icon is "puzzle"}}<IconPuzzlePiece class="w-4 h-4" />{{#else if c.badge.icon is "bolt"}}<IconBolt class="w-4 h-4" />{{#else}}<IconRocket class="w-4 h-4" />{{/if}}
+          </span>
+{{/each}}
+          <span class="ml-auto text-[12px] text-muted">{{ badges.length }}/{{ challenges.length }} badges</span>
+        </div>
+
+        <section class="pg-files" aria-labelledby="pg-files-title">
+          <div class="pg-files-head">
+            <h2 id="pg-files-title">Files</h2>
+            <button type="button" class="tx-icon-btn w-7 h-7" onclick="{{ openNewFile() }}" aria-label="New file" title="New file"><IconPlus class="w-4 h-4" /></button>
+          </div>
+{{#if newFileOpen}}
+          <form class="pg-new-file" onsubmit.prevent="{{ createFile() }}">
+            <input id="pg-new-file" bind:value="{{ newFilePath }}" onkeydown.esc="{{ cancelNewFile() }}" aria-label="New file path" spellcheck="false" autocomplete="off" />
+            <div class="flex items-center gap-2 mt-2">
+              <button type="submit" class="tx-btn tx-btn-ink tx-btn-sm">Create</button>
+              <button type="button" class="tx-btn tx-btn-ghost tx-btn-sm" onclick="{{ cancelNewFile() }}">Cancel</button>
+            </div>
+{{#if newFileError}}
+            <p class="mt-2 text-[12.5px] text-coral">{{ newFileError }}</p>
+{{/if}}
+          </form>
+{{/if}}
+          <ul class="pg-tree" role="tree" aria-label="Project files">
+{{#each row in rows}}
+{{#if row.kind is "dir"}}
+            <li class="pg-tree-dir" role="treeitem" aria-expanded="true" style:paddingLeft="{{ (row.depth * 14 + 10) + 'px' }}">
+              <IconFolderOpen class="w-3.5 h-3.5" /> {{ row.name }}
+            </li>
+{{#else}}
+            <li role="treeitem" aria-selected="{{ row.path is active }}">
+              <div class="pg-tree-file" class:is-active="{{ row.path is active }}" class:has-error="{{ fileHasError(row.path) }}" style:paddingLeft="{{ (row.depth * 14 + 10) + 'px' }}">
+                <button type="button" class="pg-tree-open" onclick="{{ openFile(row.path) }}">
+{{#if fileKind(row.path) is "tyx"}}
+                  <IconFileCode class="w-3.5 h-3.5 pg-ico-tyx" />
+{{#else if fileKind(row.path) is "css"}}
+                  <IconPaintBrush class="w-3.5 h-3.5 pg-ico-css" />
+{{#else if fileKind(row.path) is "json"}}
+                  <IconBraces class="w-3.5 h-3.5 pg-ico-json" />
+{{#else}}
+                  <IconDocument class="w-3.5 h-3.5" />
+{{/if}}
+                  <span class="truncate">{{ row.name }}</span>
+{{#if fileHasError(row.path)}}
+                  <span class="pg-err-dot" title="Has errors"></span>
+{{/if}}
+                </button>
+{{#if row.path is "package.json"}}
+                <span class="pg-tree-lock" title="Read-only in the playground"><IconLockClosed class="w-3 h-3" /></span>
+{{#else}}
+                <button type="button" class="pg-tree-del" onclick="{{ askDelete(row.path, $event) }}" aria-label="Delete {{ row.name }}" title="Delete"><IconTrash class="w-3.5 h-3.5" /></button>
+{{/if}}
+              </div>
+            </li>
+{{/if}}
+{{/each}}
+          </ul>
+        </section>
+      </aside>
+
+      <section class="pg-code" aria-label="Code editor">
+        <div class="pg-tabs" role="tablist">
+{{#each t in tabs}}
+          <div class="pg-tab" class:is-active="{{ t is active }}" class:has-error="{{ fileHasError(t) }}" role="tab" aria-selected="{{ t is active }}">
+            <button type="button" class="pg-tab-open" onclick="{{ openFile(t) }}" title="{{ t }}">{{ tabName(t) }}</button>
+            <button type="button" class="pg-tab-close" onclick="{{ closeTab(t, $event) }}" aria-label="Close {{ tabName(t) }}"><IconX class="w-3 h-3" /></button>
+          </div>
+{{/each}}
+        </div>
+        <div id="pg-editor" class="pg-editor"></div>
+        <div class="pg-statusbar">
+          <span class="truncate">{{ active }}</span>
+{{#if readOnly}}
+          <span class="inline-flex items-center gap-1"><IconLockClosed class="w-3 h-3" /> read-only</span>
+{{/if}}
+          <span class="ml-auto hidden sm:inline">Ctrl+Space suggestions · Ctrl+Enter run</span>
+          <span>{{ cursorText }}</span>
+        </div>
+      </section>
+
+      <section class="pg-preview" aria-label="Live preview">
+        <div class="pg-browser">
+          <span class="pg-browser-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="pg-url"><IconLockClosed class="w-3 h-3 shrink-0" /><span class="truncate">localhost:3000 · {{ previewTitle }}</span></span>
+          <button type="button" class="tx-icon-btn w-7 h-7" onclick="{{ run() }}" aria-label="Reload the preview" title="Rebuild and reload"><IconRefresh class="w-3.5 h-3.5" /></button>
+        </div>
+        <div class="pg-frame-wrap">
+          <iframe id="pg-frame" class="pg-frame" title="Pixel Tasks preview" sandbox="allow-scripts allow-forms allow-modals"></iframe>
+{{#if buildState is "error"}}
+          <div class="pg-frame-note"><IconExclamationTriangle class="w-3.5 h-3.5" /> Showing the last version that built. Fix the error to update it.</div>
+{{/if}}
+{{#if stale and buildState is not "error"}}
+          <div class="pg-frame-note is-info"><IconPlay class="w-3.5 h-3.5" /> You have changes. Press Run to see them.</div>
+{{/if}}
+        </div>
+      </section>
+
+      <section class="pg-console" class:is-collapsed="{{ not consoleOpen }}" aria-label="Console">
+        <div class="pg-console-head">
+          <button type="button" class="pg-console-title" onclick="{{ consoleOpen = not consoleOpen }}" aria-expanded="{{ consoleOpen }}">
+            <IconPanelBottom class="w-3.5 h-3.5" /> Console
+          </button>
+          <span class="pg-pill is-error" class:is-hidden="{{ errorCount is 0 }}"><IconXCircle class="w-3 h-3" /> {{ errorCount }}</span>
+          <span class="pg-pill is-warn" class:is-hidden="{{ warningCount is 0 }}"><IconExclamationTriangle class="w-3 h-3" /> {{ warningCount }}</span>
+          <button type="button" class="pg-mini-link ml-auto" onclick="{{ clearConsole() }}">Clear</button>
+        </div>
+        <ol id="pg-console-list" class="pg-console-list" aria-live="polite">
+{{#each log in logs}}
+          <li class="pg-log" class:is-error="{{ log.level is 'error' }}" class:is-warn="{{ log.level is 'warn' }}" class:is-info="{{ log.level is 'info' }}" class:is-build="{{ log.source is 'build' }}">
+            <span class="pg-log-icon">
+{{#if log.level is "error"}}
+              <IconXCircle class="w-3.5 h-3.5" />
+{{#else if log.level is "warn"}}
+              <IconExclamationTriangle class="w-3.5 h-3.5" />
+{{#else if log.source is "build"}}
+              <IconSparkles class="w-3.5 h-3.5" />
+{{#else}}
+              <IconChevronRight class="w-3.5 h-3.5" />
+{{/if}}
+            </span>
+            <span class="pg-log-text">{{ log.text }}</span>
+{{#if log.file}}
+            <button type="button" class="pg-log-where" onclick="{{ jumpTo(log) }}" title="Open {{ log.file }} at line {{ log.line }}">{{ logWhere(log) }}</button>
+{{#else}}
+            <span class="pg-log-src">{{ log.source }}</span>
+{{/if}}
+          </li>
+{{#else}}
+          <li class="pg-log is-empty">Nothing here yet. console.log() in your app shows up here, and so do build errors.</li>
+{{/each}}
+        </ol>
+      </section>
+    </div>
+
+{{#if dialog}}
+    <div class="tx-overlay" onclick="{{ closeDialog() }}"></div>
+    <div class="tx-dialog pg-dialog" role="dialog" aria-modal="true" aria-labelledby="pg-dialog-title" onkeydown.esc="{{ closeDialog() }}">
+{{#if dialog is "reset"}}
+      <h2 id="pg-dialog-title">Reset Pixel Tasks?</h2>
+      <p>Every file goes back to how it started. Your challenge progress and badges are kept.</p>
+      <div class="pg-dialog-actions">
+        <button type="button" class="tx-btn tx-btn-ghost tx-btn-sm" onclick="{{ closeDialog() }}">Cancel</button>
+        <button type="button" class="tx-btn tx-btn-ink tx-btn-sm" onclick="{{ resetProject() }}">Reset project</button>
+      </div>
+{{#else if dialog is "delete"}}
+      <h2 id="pg-dialog-title">Delete {{ tabName(dialogPath) }}?</h2>
+      <p>{{ dialogPath }} is removed from the project. Reset brings back the original files.</p>
+      <div class="pg-dialog-actions">
+        <button type="button" class="tx-btn tx-btn-ghost tx-btn-sm" onclick="{{ closeDialog() }}">Cancel</button>
+        <button type="button" class="tx-btn tx-btn-ink tx-btn-sm" onclick="{{ deleteFile() }}">Delete file</button>
+      </div>
+{{#else if dialog is "shared"}}
+      <h2 id="pg-dialog-title">Open the shared project?</h2>
+      <p>Someone shared a Tylix project with you. Opening it replaces the code you have here, though your badges stay.</p>
+      <div class="pg-dialog-actions">
+        <button type="button" class="tx-btn tx-btn-ghost tx-btn-sm" onclick="{{ keepMine() }}">Keep mine</button>
+        <button type="button" class="tx-btn tx-btn-ink tx-btn-sm" onclick="{{ openShared() }}">Open shared project</button>
+      </div>
+{{#else if dialog is "share"}}
+      <h2 id="pg-dialog-title">Share your project</h2>
+      <p>This link holds your whole project. Nothing is uploaded: anyone who opens it gets their own copy in their browser.</p>
+      <div class="pg-share">
+        <IconLink class="w-4 h-4 shrink-0 text-muted" />
+        <input id="pg-share-url" value="{{ shareUrl }}" readonly="true" aria-label="Share link" />
+        <button type="button" class="tx-btn tx-btn-ink tx-btn-sm" onclick="{{ copyShareUrl() }}"><IconCopy class="w-3.5 h-3.5" /> Copy</button>
+      </div>
+      <div class="pg-dialog-actions">
+        <button type="button" class="tx-btn tx-btn-ghost tx-btn-sm" onclick="{{ closeDialog() }}">Done</button>
+      </div>
+{{/if}}
+    </div>
+{{/if}}
+
+{{#if toastText}}
+    <div class="pg-toast" role="status"><IconSparkles class="w-4 h-4" /> {{ toastText }}</div>
+{{/if}}
+  </div>

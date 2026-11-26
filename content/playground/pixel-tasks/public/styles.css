@@ -1,0 +1,86 @@
+/* Pixel Tasks. Change these and watch the preview. */
+:root {
+  --accent: #5b3df5;
+  --paper: #f6f2e9;
+  --ink: #1c1a24;
+  --card: #ffffff;
+  --todo: #ffb547;
+  --doing: #4aa8ff;
+  --done: #34c98b;
+  --radius: 6px;
+  --pixel: 3px 3px 0 var(--ink);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.app { max-width: 40rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+
+.top h1 {
+  margin: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+.tagline { margin: 0.35rem 0 0; color: #5d5a68; font-size: 0.9rem; }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 1.5rem; }
+.stat {
+  display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem 0.9rem;
+  background: var(--card); border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: var(--pixel);
+}
+.stat span { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #5d5a68; }
+.stat strong { font-family: ui-monospace, Menlo, monospace; font-size: 1.5rem; }
+.stat.is-todo { border-top: 6px solid var(--todo); }
+.stat.is-doing { border-top: 6px solid var(--doing); }
+.stat.is-done { border-top: 6px solid var(--done); }
+
+.add { display: flex; gap: 0.5rem; margin-top: 1.5rem; }
+.add input {
+  flex: 1; min-width: 0; height: 2.75rem; padding: 0 0.85rem; font: inherit; color: var(--ink);
+  background: var(--card); border: 2px solid var(--ink); border-radius: var(--radius); outline: none;
+}
+.add input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.add button {
+  display: inline-flex; align-items: center; gap: 0.35rem; height: 2.75rem; padding: 0 1rem;
+  font: inherit; font-weight: 600; color: #fff; background: var(--accent);
+  border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: var(--pixel); cursor: pointer;
+}
+.add button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.25rem; }
+.chip {
+  height: 2rem; padding: 0 0.75rem; font: inherit; font-size: 0.8rem; text-transform: capitalize;
+  color: var(--ink); background: transparent; border: 2px solid var(--ink); border-radius: 999px; cursor: pointer;
+}
+.chip.is-on { color: #fff; background: var(--ink); }
+
+.list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
+.card {
+  display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.85rem;
+  background: var(--card); border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: var(--pixel);
+}
+.dot { width: 12px; height: 12px; flex: none; background: var(--todo); border: 2px solid var(--ink); }
+.card[data-status="doing"] .dot { background: var(--doing); }
+.card[data-status="done"] .dot { background: var(--done); }
+.title { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.title.is-done { text-decoration: line-through; color: #8a8794; }
+.pill {
+  flex: none; padding: 0.15rem 0.5rem; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  background: var(--paper); border: 2px solid var(--ink); border-radius: 4px;
+}
+.card button {
+  display: inline-flex; align-items: center; gap: 0.3rem; height: 2rem; padding: 0 0.5rem; flex: none;
+  font: inherit; font-size: 0.8rem; color: var(--ink); background: transparent; border: 2px solid transparent; border-radius: 4px; cursor: pointer;
+}
+.card button:hover { border-color: var(--ink); }
+.card .delete:hover { color: #d33; }
+.icon { width: 1rem; height: 1rem; }
+.empty { padding: 1.5rem; text-align: center; color: #5d5a68; border: 2px dashed #b9b4a8; border-radius: var(--radius); }

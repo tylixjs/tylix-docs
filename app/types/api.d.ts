@@ -166,6 +166,27 @@ export interface ApiRoutes {
     response: { user: AuthUser }
     auth: true
   }
+  "POST /api/playground/compile": {
+    params: Record<string, never>
+    query: Record<string, string | number | boolean | undefined>
+    body: Record<string, unknown>
+    response: unknown
+    auth: false
+  }
+  "GET /api/playground/meta": {
+    params: Record<string, never>
+    query: Record<string, string | number | boolean | undefined>
+    body: undefined
+    response: unknown
+    auth: false
+  }
+  "GET /api/playground/starter": {
+    params: Record<string, never>
+    query: Record<string, string | number | boolean | undefined>
+    body: undefined
+    response: unknown
+    auth: false
+  }
   "GET /api/posts": {
     params: Record<string, never>
     query: { page?: number; limit?: number; [filter: string]: string | number | undefined }
@@ -279,6 +300,11 @@ export interface RouteClient {
   }
   login(body: ApiRoutes["POST /api/login"]['body'], options?: RouteOptions<ApiRoutes["POST /api/login"]['query']>): Promise<ApiResult<ApiRoutes["POST /api/login"]['response']>>
   me(options?: RouteOptions<ApiRoutes["GET /api/me"]['query']>): Promise<ApiResult<ApiRoutes["GET /api/me"]['response']>>
+  playground: {
+    compile(body?: ApiRoutes["POST /api/playground/compile"]['body'], options?: RouteOptions<ApiRoutes["POST /api/playground/compile"]['query']>): Promise<ApiResult<ApiRoutes["POST /api/playground/compile"]['response']>>
+    meta(options?: RouteOptions<ApiRoutes["GET /api/playground/meta"]['query']>): Promise<ApiResult<ApiRoutes["GET /api/playground/meta"]['response']>>
+    starter(options?: RouteOptions<ApiRoutes["GET /api/playground/starter"]['query']>): Promise<ApiResult<ApiRoutes["GET /api/playground/starter"]['response']>>
+  }
   posts: {
     index(options?: RouteOptions<ApiRoutes["GET /api/posts"]['query']>): Promise<ApiResult<ApiRoutes["GET /api/posts"]['response']>>
     store(body: ApiRoutes["POST /api/posts"]['body'], options?: RouteOptions<ApiRoutes["POST /api/posts"]['query']>): Promise<ApiResult<ApiRoutes["POST /api/posts"]['response']>>

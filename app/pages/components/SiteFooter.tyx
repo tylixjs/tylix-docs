@@ -10,6 +10,7 @@ computed
         links: [
           { label: "Introduction", href: "/docs" },
           { label: "Installation", href: "/docs/installation" },
+          { label: "Playground", href: "/playground" },
           { label: "The .tyx language", href: "/docs/pages" },
           { label: "CLI reference", href: "/docs/cli" }
         ]

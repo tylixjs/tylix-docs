@@ -3,3 +3,5 @@ database.sqlite
 .env
 dist/
 storage/logs/*.log
+.env.production
+app/tailwind-input.css

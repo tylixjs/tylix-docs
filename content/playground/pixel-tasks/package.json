@@ -1,0 +1,16 @@
+{
+  "name": "pixel-tasks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tylix dev",
+    "build": "tylix build",
+    "start": "tylix start"
+  },
+  "dependencies": {
+    "@tylix/cli": "^2.1.1",
+    "@tylix/compiler": "^2.1.1",
+    "@tylix/core": "^2.1.1",
+    "tylix-icons": "^2.1.1"
+  }
+}

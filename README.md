@@ -50,3 +50,31 @@ tylix make:observer Audit --model User                  # model lifecycle hooks
 tylix make:trait HasSlug                                # reusable model behaviour
 tylix make:channel chat                                 # live channel + demo page
 ```
+
+## Playground (/playground)
+
+A guided Tylix project (Pixel Tasks) people edit in the browser, built by the
+real compiler and previewed live, with five challenges.
+
+```
+content/playground/pixel-tasks/        the starter project (edit it like any Tylix app)
+app/pages/Playground.tyx               the page: workspace UI, state, challenges progress
+public/playground/editor.js            code editor (highlighting, completion, error marks)
+public/playground/highlight.js         .tyx / CSS / JSON highlighter
+public/playground/workspace.js         saving, share links, challenge text and checks
+app/services/Playground.ts             build queue around a worker thread
+app/services/playground/               compileProject.mjs (the build), compileWorker.mjs,
+                                       previewBridge.js (injected into every preview)
+app/controllers/PlaygroundController.ts  GET starter, GET meta, POST compile
+```
+
+Builds only parse and generate code on the server; nothing a visitor writes
+runs there. The result runs in a `sandbox="allow-scripts"` iframe (opaque
+origin, no access to the site's cookies or storage) and reports its console
+and a small DOM outline back with `postMessage`. Projects are saved in the
+visitor's browser; share links carry the whole project, compressed, in the
+URL hash. Limits: 40 files, 60 KB a file, 200 KB a project, 90 builds a
+minute per IP, 10 seconds a build.
+
+`node --import tsx --test --test-force-exit tests/playground.test.ts` runs the
+API tests (the test client keeps the process open, hence `--test-force-exit`).

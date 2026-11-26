@@ -1,0 +1,62 @@
+page Home
+
+import TaskCard from "./components/TaskCard"
+import { IconPlus } from "tylix-icons"
+
+title "Pixel Tasks"
+
+uses
+  Tasks
+
+state
+  heading: "Pixel Tasks"
+  draft: ""
+  filter: "all"
+  filters: ["all", "todo", "doing", "done"]
+
+computed
+  visible() {
+    if this.filter is "all" {
+      return Tasks.tasks
+    }
+    return Tasks.tasks.filter(t => t.status is this.filter)
+  }
+
+action
+  addTask() {
+    Tasks.add(this.draft)
+    this.draft = ""
+  }
+
+template
+  <main class="app">
+    <header class="top">
+      <h1>{{ heading }}</h1>
+      <p class="tagline">{{ Tasks.tasks.length }} tasks, {{ Tasks.count("done") }} done</p>
+    </header>
+
+    <section class="stats">
+      <div class="stat is-todo"><span>Todo</span><strong>{{ Tasks.count("todo") }}</strong></div>
+      <div class="stat is-doing"><span>In progress</span><strong>{{ Tasks.count("doing") }}</strong></div>
+      <div class="stat is-done"><span>Done</span><strong>{{ Tasks.count("done") }}</strong></div>
+    </section>
+
+    <form class="add" onsubmit.prevent="{{ addTask() }}">
+      <input bind:value="{{ draft }}" placeholder="What needs doing?" aria-label="New task" />
+      <button type="submit"><IconPlus class="icon" /> Add</button>
+    </form>
+
+    <nav class="filters" aria-label="Filter tasks">
+{{#each f in filters}}
+      <button type="button" class="chip" class:is-on="{{ filter is f }}" onclick="{{ filter = f }}">{{ f }}</button>
+{{/each}}
+    </nav>
+
+    <ul class="list">
+{{#each task in visible}}
+      <TaskCard task="{{ task }}" />
+{{#else}}
+      <li class="empty">Nothing here yet. Add a task above.</li>
+{{/each}}
+    </ul>
+  </main>

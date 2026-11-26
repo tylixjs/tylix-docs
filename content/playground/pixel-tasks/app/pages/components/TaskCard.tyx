@@ -1,0 +1,34 @@
+component TaskCard
+
+import { IconTrash } from "tylix-icons"
+
+uses
+  Tasks
+
+props
+  task: { id: number, title: string, status: string }
+
+computed
+  isDone() {
+    return this.task.status is "done"
+  }
+
+  label() {
+    if this.task.status is "doing" {
+      return "In progress"
+    }
+    if this.task.status is "done" {
+      return "Done"
+    }
+    return "Todo"
+  }
+
+template
+  <li class="card" data-task="{{ task.id }}" data-status="{{ task.status }}">
+    <span class="dot"></span>
+    <p class="title" class:is-done="{{ isDone }}">{{ task.title }}</p>
+    <span class="pill">{{ label }}</span>
+    <button type="button" class="delete" onclick="{{ Tasks.remove(task) }}" aria-label="Delete task">
+      <IconTrash class="icon" />
+    </button>
+  </li>

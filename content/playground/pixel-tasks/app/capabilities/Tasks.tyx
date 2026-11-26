@@ -1,0 +1,31 @@
+capability Tasks
+
+// Shared state for the whole app. Any page or component that lists
+// `Tasks` under `uses` reads the same list, and every change shows up
+// everywhere at once.
+
+state
+  tasks: [
+    { id: 1, title: "Sketch the pixel logo", status: "done" },
+    { id: 2, title: "Wire up the task form", status: "doing" },
+    { id: 3, title: "Pick a colour palette", status: "todo" }
+  ]
+
+action
+  add(title) {
+    const clean = title.trim()
+    if not clean {
+      return null
+    }
+    const id = this.tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1
+    this.tasks.push({ id: id, title: clean, status: "todo" })
+    console.log("Added task #" + id + ": " + clean)
+  }
+
+  remove(task) {
+    this.tasks = this.tasks.filter(t => t.id is not task.id)
+  }
+
+  count(status) {
+    return this.tasks.filter(t => t.status is status).length
+  }
