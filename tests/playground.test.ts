@@ -86,3 +86,51 @@ test('oversized projects are refused', async () => {
   const { status } = await compile([...starter, { path: 'big.css', content: 'x'.repeat(70_000) }])
   assert.equal(status, 422)
 })
+
+test('meta carries the editor modules\' version, revalidated on every visit', async () => {
+  const res = await client.get('/api/playground/meta')
+  const body = res.data as { data: { version: string; icons: string[] } }
+  assert.equal(res.status, 200)
+  assert.match(body.data.version, /^[0-9a-f]{10}$/)
+  assert.ok(body.data.icons.includes('IconPlus'))
+})
+
+// The intermediate track's hints, applied together, as a learner would.
+test('the intermediate challenges\' solutions build', async () => {
+  const home = starter.find((f) => f.path === 'app/pages/Home.tyx')!.content
+    .replace('  filters: ["all", "todo", "doing", "done"]', '  filters: ["all", "todo", "doing", "done"]\n  query: ""')
+    .replace(/computed\n  visible\(\) \{[\s\S]*?\n  \}\n/, `computed
+  visible() {
+    const q = this.query.trim().toLowerCase()
+    return Tasks.tasks.filter(t => (this.filter is "all" or t.status is this.filter) and t.title.toLowerCase() has q)
+  }
+
+  progress() {
+    if Tasks.tasks.length is 0 {
+      return 0
+    }
+    return Math.round(Tasks.count("done") / Tasks.tasks.length * 100)
+  }
+
+  allDone() {
+    return Tasks.tasks.length > 0 and Tasks.count("done") is Tasks.tasks.length
+  }
+`)
+    .replace('uses\n  Tasks', 'uses\n  Tasks\n  Prefs')
+    .replace('<main class="app">', '<main class="app" class:is-compact="{{ Prefs.compact }}">')
+    .replace('      <h1>{{ heading }}</h1>', '      <h1>{{ heading }}</h1>\n      <button type="button" class="chip" onclick="{{ Prefs.toggle() }}">Compact</button>')
+    .replace(/<p class="tagline">.*<\/p>/, `<p class="tagline">{{ progress }}% done</p>\n      <div class="progress"><span style:width="{{ progress + '%' }}"></span></div>`)
+    .replace('    <section class="stats">', '{{#if allDone}}\n    <p class="banner">All done! Time for a break.</p>\n{{/if}}\n\n    <section class="stats">')
+    .replace('    <nav class="filters"', '    <input class="search" bind:value="{{ query }}" placeholder="Search tasks" />\n\n    <nav class="filters"')
+    .replace(/    <form class="add"[\s\S]*?<\/form>/, (form) => `    <Panel title="New task">\n${form}\n    </Panel>`)
+  const files = [
+    ...starter.filter((f) => f.path !== 'app/pages/Home.tyx'),
+    { path: 'app/pages/Home.tyx', content: home },
+    { path: 'app/pages/components/Panel.tyx', content: 'component Panel\n\nprops\n  title: string\n\ntemplate\n  <section class="panel">\n    <h2>{{ title }}</h2>\n    <slot />\n  </section>\n' },
+    { path: 'app/capabilities/Prefs.tyx', content: 'capability Prefs\n\nstate\n  compact: false\n\naction\n  toggle() {\n    this.compact = not this.compact\n  }\n' },
+  ]
+  const { status, data } = await compile(files)
+  assert.equal(status, 200)
+  assert.deepEqual(data.data?.diagnostics, [])
+  assert.equal(data.data?.ok, true)
+})

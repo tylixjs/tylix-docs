@@ -5,6 +5,7 @@
  *   compile(files)   one build: { ok, html, diagnostics, symbols, build, ms }
  *   starterFiles()   the Pixel Tasks project, from content/playground/
  *   iconNames()      every tylix-icons component, for autocomplete
+ *   clientVersion()  a hash of public/playground/*.js, for their URLs
  *
  * One build at a time, in order. A build that runs past BUILD_TIMEOUT_MS
  * kills the worker (a fresh one starts for the next build) and fails with
@@ -12,6 +13,7 @@
  * way, so a burst of requests can't pile up work.
  */
 
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Worker } from "node:worker_threads";
@@ -155,6 +157,30 @@ export function iconNames(): Promise<string[]> {
         .then((text) => Object.keys(JSON.parse(text) as Record<string, string>).sort())
         .catch(() => []);
     return iconCache;
+}
+
+let versionCache: Promise<string> | null = null;
+
+async function hashClientFiles(): Promise<string> {
+    const dir = path.join(process.cwd(), "public", "playground");
+    const names = (await fs.readdir(dir)).filter((n) => n.endsWith(".js")).sort();
+    const hash = crypto.createHash("sha256");
+    for (const name of names) hash.update(name).update(await fs.readFile(path.join(dir, name)));
+    return hash.digest("hex").slice(0, 10);
+}
+
+/**
+ * The page loads editor.js, workspace.js and highlight.js with ?v=<this>.
+ * Their names never change, so without it a deploy could pair the new page
+ * with the old modules from the browser cache, the CDN or the service worker.
+ */
+export function clientVersion(): Promise<string> {
+    if (process.env.NODE_ENV !== "production") return hashClientFiles();
+    versionCache ??= hashClientFiles().catch((err) => {
+        versionCache = null;
+        throw err;
+    });
+    return versionCache;
 }
 
 /** Builds the starter once at boot, so the first visitor gets a warm compiler. */

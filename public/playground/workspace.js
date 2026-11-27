@@ -113,7 +113,8 @@ export function newFileTemplate(path) {
 //   ok         the last build succeeded
 //   symbols    the compiler's outline of every file
 //   base       the preview's first snapshot after the last build
-//   snapshot   the preview's latest snapshot
+//   snapshot   the preview's latest snapshot: { title, headings, tasks,
+//              text, inputs, classes } (see previewBridge.js)
 //   events     { shared }              things done in the playground UI
 // A step that passes once stays done.
 
@@ -134,10 +135,59 @@ function newActions(ctx) {
   return outline.filter((s) => s.kind === "action" && !original.has(s.name)).map((s) => s.name);
 }
 
+// Names declared in a file's outline (from the compiler) of one kind.
+function declared(ctx, path, kind) {
+  return (ctx.symbols?.[path]?.symbols ?? []).filter((s) => s.kind === kind).map((s) => s.name);
+}
+
+// Computed values added to Home.tyx (the starter has visible).
+function newComputed(ctx) {
+  return declared(ctx, "app/pages/Home.tyx", "computed").filter((n) => n !== "visible");
+}
+
+// Template files (pages and components), not capabilities.
+function templateFiles(ctx) {
+  return Object.entries(ctx.files).filter(([p]) => p.endsWith(".tyx") && !p.startsWith("app/capabilities/"));
+}
+
+function count(text, needle) {
+  return (text ?? "").split(needle).length - 1;
+}
+
+function readsInTemplate(text, name) {
+  return new RegExp(`\\{\\{[^}]*\\b${name}\\b[^}]*\\}\\}`).test(text ?? "");
+}
+
+// State fields of Home.tyx that an input binds to, other than the starter's draft.
+function boundFields(ctx) {
+  const home = ctx.files["app/pages/Home.tyx"] ?? "";
+  const state = new Set(declared(ctx, "app/pages/Home.tyx", "state"));
+  return [...home.matchAll(/bind:value="\{\{\s*([A-Za-z_$][\w$]*)\s*\}\}"/g)].map((m) => m[1]).filter((n) => n !== "draft" && state.has(n));
+}
+
+function slotComponents(ctx) {
+  return newComponents(ctx).filter((c) => /<slot[\s/>]/.test(ctx.files[c.path]));
+}
+
+// Capabilities the learner made, with their state and actions.
+function newCapabilities(ctx) {
+  return Object.keys(ctx.files)
+    .filter((p) => p.startsWith("app/capabilities/") && p.endsWith(".tyx") && !(p in ctx.starter))
+    .map((p) => ({ path: p, outline: ctx.symbols?.[p] }))
+    .filter((c) => c.outline?.kind === "capability" && c.outline.name)
+    .map((c) => ({
+      path: c.path,
+      name: c.outline.name,
+      state: c.outline.symbols.filter((s) => s.kind === "state").map((s) => s.name),
+      actions: c.outline.symbols.filter((s) => s.kind === "action").map((s) => s.name),
+    }));
+}
+
 export const CHALLENGES = [
   {
     id: "customize",
     title: "Customize the dashboard",
+    level: "beginner",
     intro: "Make Pixel Tasks yours. Every change you make is compiled by the real Tylix compiler and shows up in the preview.",
     badge: { id: "first-build", name: "First Build", icon: "paint" },
     steps: [
@@ -160,6 +210,7 @@ export const CHALLENGES = [
   {
     id: "create-task",
     title: "Create a task",
+    level: "beginner",
     intro: "Tasks live in a capability: shared state that every page and component can use. Add to it from the code, then from the app.",
     badge: { id: "state-keeper", name: "State Keeper", icon: "layers" },
     steps: [
@@ -181,6 +232,7 @@ export const CHALLENGES = [
   {
     id: "component",
     title: "Build a component",
+    level: "beginner",
     intro: "Components are .tyx files in app/pages/components/. Each one has its own props, state and template, and any page can use it.",
     badge: { id: "component-crafter", name: "Component Crafter", icon: "puzzle" },
     steps: [
@@ -202,6 +254,7 @@ export const CHALLENGES = [
   {
     id: "interactive",
     title: "Make it interactive",
+    level: "beginner",
     intro: "Give every task a button that moves it along: Todo, then In progress, then Done.",
     badge: { id: "live-wire", name: "Live Wire", icon: "bolt" },
     steps: [
@@ -234,6 +287,7 @@ export const CHALLENGES = [
   {
     id: "ship",
     title: "Ship your project",
+    level: "beginner",
     intro: "Finish it off and show someone what you made.",
     badge: { id: "shipper", name: "Shipped", icon: "rocket" },
     steps: [
@@ -252,6 +306,159 @@ export const CHALLENGES = [
       },
     ],
   },
+
+  // ── Intermediate: the same app, with the ideas real projects lean on ──
+  {
+    id: "computed",
+    title: "Work it out with computed",
+    level: "intermediate",
+    intro: "A computed value is worked out from other state and stays up to date on its own. Home.tyx already has one, visible. Add your own: a progress percentage.",
+    badge: { id: "calculated", name: "Calculated", icon: "calculator" },
+    steps: [
+      {
+        id: "define",
+        text: "Add a progress() computed value to Home.tyx that returns the percentage of tasks that are done.",
+        file: "app/pages/Home.tyx",
+        hint: 'Under computed in Home.tyx, after visible():\n\n  progress() {\n    if Tasks.tasks.length is 0 {\n      return 0\n    }\n    return Math.round(Tasks.count("done") / Tasks.tasks.length * 100)\n  }',
+        check: (ctx) => ctx.ok && newComputed(ctx).length > 0,
+      },
+      {
+        id: "show",
+        text: "Show it in the template as a percentage, like “33% done”.",
+        file: "app/pages/Home.tyx",
+        hint: 'Read a computed value like state, without (). Change the tagline:\n\n  <p class="tagline">{{ progress }}% done</p>\n\nstyles.css has a .progress bar ready if you want one:\n\n  <div class="progress"><span style:width="{{ progress + \'%\' }}"></span></div>',
+        check: (ctx) =>
+          ctx.ok &&
+          newComputed(ctx).some((name) => readsInTemplate(ctx.files["app/pages/Home.tyx"], name)) &&
+          /\d\s*%/.test(ctx.snapshot?.text ?? ""),
+      },
+    ],
+  },
+  {
+    id: "conditional",
+    title: "Show and hide with #if",
+    level: "intermediate",
+    intro: "{{#if}} renders part of a template only while something is true, and {{#else}} covers the rest. Celebrate when every task is done.",
+    badge: { id: "decider", name: "Decider", icon: "flag" },
+    steps: [
+      {
+        id: "block",
+        text: "Add an {{#if}} block to Home.tyx that shows a message when every task is done.",
+        file: "app/pages/Home.tyx",
+        hint: 'A computed value keeps the template tidy:\n\n  allDone() {\n    return Tasks.tasks.length > 0 and Tasks.count("done") is Tasks.tasks.length\n  }\n\nThen, above the stats section:\n\n{{#if allDone}}\n    <p class="banner">All done! Time for a break.</p>\n{{/if}}',
+        check: (ctx) =>
+          ctx.ok &&
+          templateFiles(ctx).reduce((n, [, text]) => n + count(text, "{{#if"), 0) >
+            Object.entries(ctx.starter).filter(([p]) => p.endsWith(".tyx")).reduce((n, [, text]) => n + count(text, "{{#if"), 0),
+      },
+      {
+        id: "see",
+        text: "Finish every task in the preview and watch your message appear.",
+        hint: "Use the Next button from Make it interactive, or delete tasks until only done ones are left. The block appears the moment its condition is true and goes away when it isn't.",
+        check: (ctx) => {
+          const tasks = ctx.snapshot?.tasks ?? [];
+          return ctx.ok && !!ctx.base && tasks.length > 0 && tasks.every((t) => t.status === "done") && ctx.snapshot.text !== ctx.base.text;
+        },
+      },
+    ],
+  },
+  {
+    id: "binding",
+    title: "Search with two-way binding",
+    level: "intermediate",
+    intro: "bind:value keeps an input and a state field in step, both ways. The add form already uses it for draft. Use it for a search box.",
+    badge: { id: "two-way", name: "Two-Way", icon: "search" },
+    steps: [
+      {
+        id: "field",
+        text: "Add a query state field to Home.tyx and a search input bound to it.",
+        file: "app/pages/Home.tyx",
+        hint: 'In state:\n\n  query: ""\n\nAbove the filters in the template:\n\n    <input class="search" bind:value="{{ query }}" placeholder="Search tasks" />',
+        check: (ctx) => ctx.ok && boundFields(ctx).length > 0,
+      },
+      {
+        id: "filter",
+        text: "Make visible() keep only the tasks whose title contains the query.",
+        file: "app/pages/Home.tyx",
+        hint: 'has means "contains", for strings and lists:\n\n  visible() {\n    const q = this.query.trim().toLowerCase()\n    return Tasks.tasks.filter(t => (this.filter is "all" or t.status is this.filter) and t.title.toLowerCase() has q)\n  }',
+        check: (ctx) => ctx.ok && boundFields(ctx).some((name) => new RegExp(`this\\.${name}\\b`).test(ctx.files["app/pages/Home.tyx"])),
+      },
+      {
+        id: "type",
+        text: "Type in the search box in the preview and watch the list narrow.",
+        hint: "Each keystroke updates query, visible is worked out again, and only the cards that changed are touched.",
+        check: (ctx) =>
+          ctx.ok &&
+          !!ctx.base &&
+          boundFields(ctx).length > 0 &&
+          (ctx.snapshot?.inputs ?? []).some((v) => v.trim() !== "") &&
+          (ctx.snapshot?.tasks?.length ?? 0) < ctx.base.tasks.length,
+      },
+    ],
+  },
+  {
+    id: "slots",
+    title: "Wrap content with slots",
+    level: "intermediate",
+    intro: "A component can take children. <slot /> marks where they go, so one component can frame anything you put inside it.",
+    badge: { id: "frame-maker", name: "Frame Maker", icon: "window" },
+    steps: [
+      {
+        id: "panel",
+        text: "Create app/pages/components/Panel.tyx with a title prop and a <slot />.",
+        hint: 'Click + in Files and name it app/pages/components/Panel.tyx:\n\ncomponent Panel\n\nprops\n  title: string\n\ntemplate\n  <section class="panel">\n    <h2>{{ title }}</h2>\n    <slot />\n  </section>',
+        check: (ctx) => ctx.ok && slotComponents(ctx).length > 0,
+      },
+      {
+        id: "wrap",
+        text: "Wrap the add form in Home.tyx with your component.",
+        file: "app/pages/Home.tyx",
+        hint: 'Put an opening tag before the <form> and a closing one after </form>:\n\n    <Panel title="New task">\n      <form class="add" ...>\n        ...\n      </form>\n    </Panel>\n\nThe form still calls addTask on the page: slot content belongs to the page that wrote it.',
+        check: (ctx) =>
+          ctx.ok &&
+          slotComponents(ctx).some((c) =>
+            templateFiles(ctx).some(([p, text]) => p !== c.path && new RegExp(`<${c.name}[\\s>][\\s\\S]*?</${c.name}>`).test(text)),
+          ),
+      },
+    ],
+  },
+  {
+    id: "capability",
+    title: "Make your own capability",
+    level: "intermediate",
+    intro: "Tasks is a capability: state that every page and component shares. Make one of your own for a display setting, and use it from the page.",
+    badge: { id: "architect", name: "Architect", icon: "cube" },
+    steps: [
+      {
+        id: "create",
+        text: "Create app/capabilities/Prefs.tyx with a compact state field and an action that flips it.",
+        hint: "Click + in Files and name it app/capabilities/Prefs.tyx:\n\ncapability Prefs\n\nstate\n  compact: false\n\naction\n  toggle() {\n    this.compact = not this.compact\n  }",
+        check: (ctx) => ctx.ok && newCapabilities(ctx).some((c) => c.state.length > 0 && c.actions.length > 0),
+      },
+      {
+        id: "use",
+        text: "Use it in Home.tyx: add it under uses, a button that calls its action, and a class: that reads its state.",
+        file: "app/pages/Home.tyx",
+        hint: 'uses\n  Tasks\n  Prefs\n\n  <main class="app" class:is-compact="{{ Prefs.compact }}">\n\nNext to the heading:\n\n      <button type="button" class="chip" onclick="{{ Prefs.toggle() }}">Compact</button>',
+        check: (ctx) =>
+          ctx.ok &&
+          newCapabilities(ctx).some((c) =>
+            templateFiles(ctx).some(
+              ([p, text]) =>
+                declared(ctx, p, "uses").includes(c.name) &&
+                c.actions.some((a) => new RegExp(`${c.name}\\.${a}\\s*\\(`).test(text)) &&
+                c.state.some((f) => new RegExp(`${c.name}\\.${f}\\b`).test(text)),
+            ),
+          ),
+      },
+      {
+        id: "click",
+        text: "Click your button in the preview and watch the page change.",
+        hint: "Every page and component that uses Prefs reads the same compact field, so they all change together.",
+        check: (ctx) => ctx.ok && !!ctx.base && !!ctx.snapshot && newCapabilities(ctx).length > 0 && ctx.snapshot.classes !== ctx.base.classes,
+      },
+    ],
+  },
 ];
 
 // Challenge text without the functions, for the page's reactive state.
@@ -260,6 +467,7 @@ export function challengeSummaries() {
     id: c.id,
     title: c.title,
     intro: c.intro,
+    level: c.level,
     badge: c.badge,
     steps: c.steps.map((s) => ({ id: s.id, text: s.text, hint: s.hint, file: s.file ?? "" })),
   }));

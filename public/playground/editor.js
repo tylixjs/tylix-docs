@@ -12,7 +12,9 @@
 //   editor.value()                     current text
 //   editor.readOnly(flag)
 
-import { highlight, languageOf, lineSection } from "./highlight.js";
+// Loaded with this module's own ?v=, so a deploy never pairs it with an
+// old highlighter from a cache.
+const { highlight, languageOf, lineSection } = await import("./highlight.js" + new URL(import.meta.url).search);
 
 const INDENT = "  ";
 

@@ -3,7 +3,8 @@
 // playground page can't look inside it. This script reports out instead,
 // with postMessage:
 //   console   console.* calls, uncaught errors and rejected promises
-//   snapshot  a small outline of the page (title, h1s, task cards), sent
+//   snapshot  a small outline of the page (title, h1s, task cards, input
+//             values, a hash of the class attributes), sent
 //             after every DOM change, used by the challenge checks
 //   ready     the page has mounted
 // and keeps the app working without real storage or navigation.
@@ -96,7 +97,18 @@
       tasks.push({ id: cards[j].getAttribute("data-task"), status: cards[j].getAttribute("data-status") });
     }
     var text = document.body ? (document.body.innerText || "") : "";
-    return { title: document.title, headings: headings, tasks: tasks, text: text.slice(0, 3000) };
+    // What's typed in the page's inputs, and a hash of every class
+    // attribute (so a check can tell that a class: directive flipped).
+    var inputs = [];
+    var fields = document.querySelectorAll("input:not([type=checkbox]):not([type=radio]), textarea");
+    for (var k = 0; k < fields.length && k < 20; k++) inputs.push(String(fields[k].value || "").slice(0, 200));
+    var classes = 5381;
+    var styled = document.querySelectorAll("[class]");
+    for (var n = 0; n < styled.length && n < 2000; n++) {
+      var c = styled[n].getAttribute("class") + "|";
+      for (var q = 0; q < c.length; q++) classes = ((classes * 33) ^ c.charCodeAt(q)) >>> 0;
+    }
+    return { title: document.title, headings: headings, tasks: tasks, text: text.slice(0, 3000), inputs: inputs, classes: String(classes) };
   }
 
   var timer = null;
@@ -109,6 +121,8 @@
     new MutationObserver(schedule).observe(document.documentElement, {
       subtree: true, childList: true, attributes: true, characterData: true
     });
+    // Typing changes an input's value without touching the DOM.
+    document.addEventListener("input", schedule, true);
     setTimeout(function () { post({ type: "ready" }); schedule(); }, 0);
   });
 })();

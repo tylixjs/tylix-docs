@@ -84,3 +84,23 @@ body {
 .card .delete:hover { color: #d33; }
 .icon { width: 1rem; height: 1rem; }
 .empty { padding: 1.5rem; text-align: center; color: #5d5a68; border: 2px dashed #b9b4a8; border-radius: var(--radius); }
+
+/* Ready for the intermediate challenges: a progress bar, a banner, a search
+   box, a panel and a compact mode. */
+.progress { height: 10px; margin-top: 0.6rem; overflow: hidden; background: var(--card); border: 2px solid var(--ink); border-radius: 999px; }
+.progress span { display: block; height: 100%; background: var(--done); transition: width 0.3s; }
+.banner {
+  margin: 1.25rem 0 0; padding: 0.75rem 1rem; font-weight: 600;
+  background: var(--done); border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: var(--pixel);
+}
+.search {
+  width: 100%; height: 2.5rem; margin-top: 1.25rem; padding: 0 0.85rem; font: inherit; color: var(--ink);
+  background: var(--card); border: 2px solid var(--ink); border-radius: 999px; outline: none;
+}
+.search:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.panel { margin-top: 1.5rem; padding: 0.9rem; background: var(--card); border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: var(--pixel); }
+.panel h2 { margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #5d5a68; }
+.panel .add { margin-top: 0.6rem; }
+.app.is-compact .stats { display: none; }
+.app.is-compact .list { gap: 0.3rem; }
+.app.is-compact .card { padding: 0.35rem 0.6rem; box-shadow: none; }

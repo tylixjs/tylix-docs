@@ -1,0 +1,12 @@
+component BadgeIcon
+
+// The icon of a playground badge (public/playground/workspace.js names it).
+// It fills its box: size it with the element around it.
+
+import { IconPaintBrush, IconLayers, IconPuzzlePiece, IconBolt, IconRocket, IconCalculator, IconFlag, IconSearch, IconWindow, IconCube } from "tylix-icons"
+
+props
+  icon: string
+
+template
+{{#if icon is "paint"}}<IconPaintBrush class="w-full h-full" />{{#else if icon is "layers"}}<IconLayers class="w-full h-full" />{{#else if icon is "puzzle"}}<IconPuzzlePiece class="w-full h-full" />{{#else if icon is "bolt"}}<IconBolt class="w-full h-full" />{{#else if icon is "calculator"}}<IconCalculator class="w-full h-full" />{{#else if icon is "flag"}}<IconFlag class="w-full h-full" />{{#else if icon is "search"}}<IconSearch class="w-full h-full" />{{#else if icon is "window"}}<IconWindow class="w-full h-full" />{{#else if icon is "cube"}}<IconCube class="w-full h-full" />{{#else}}<IconRocket class="w-full h-full" />{{/if}}

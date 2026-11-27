@@ -2,7 +2,7 @@
  * Controller: PlaygroundController
  *
  *   GET  /api/playground/starter    the Pixel Tasks project files
- *   GET  /api/playground/meta       names for editor autocomplete (icons)
+ *   GET  /api/playground/meta       the client modules' version, and icon names for autocomplete
  *   POST /api/playground/compile    { files: [{ path, content }] } -> a build
  *
  * Public: no account needed. A build only parses and generates code on the
@@ -11,7 +11,7 @@
  */
 
 import { createRateLimiter, type TylixRequest, type TylixResponse } from "@tylix/core";
-import { compile, iconNames, starterFiles, PlaygroundInvalid, PlaygroundUnavailable } from "../services/Playground.js";
+import { clientVersion, compile, iconNames, starterFiles, PlaygroundInvalid, PlaygroundUnavailable } from "../services/Playground.js";
 
 // Auto-run sends a build roughly once per pause in typing.
 const limit = createRateLimiter({ max: 90, windowMs: 60_000 }) as (key: string) => { allowed: boolean; retryAfterSeconds: number };
@@ -32,8 +32,11 @@ export class PlaygroundController {
     }
 
     async meta(_req: TylixRequest, res: TylixResponse) {
-        setHeader(res, "Cache-Control", "public, max-age=3600");
-        return res.json({ data: { icons: await iconNames() } });
+        // Revalidated on every visit: it carries the version the page loads
+        // the editor modules with, which changes on deploy.
+        setHeader(res, "Cache-Control", "no-cache");
+        const [version, icons] = await Promise.all([clientVersion(), iconNames()]);
+        return res.json({ data: { version, icons } });
     }
 
     async compile(req: TylixRequest, res: TylixResponse) {

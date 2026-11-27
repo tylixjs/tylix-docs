@@ -3,7 +3,7 @@ page Playground
 // The Tylix Playground: a small real project (Pixel Tasks) to edit in the
 // browser, built by the real compiler on every change
 // (POST /api/playground/compile) and run in a sandboxed iframe, with five
-// guided challenges.
+// guided challenges in two tracks (beginner, then intermediate).
 //
 // This page owns the state. The editor (public/playground/editor.js) and
 // the non-UI helpers (public/playground/workspace.js: saving, share links,
@@ -12,7 +12,8 @@ page Playground
 // app/services/playground/previewBridge.js.
 
 import PageLoading from "./components/PageLoading"
-import { IconPlay, IconRefresh, IconShare, IconPlus, IconTrash, IconFolderOpen, IconFileCode, IconBraces, IconDocument, IconTerminal, IconEye, IconCode, IconLightBulb, IconCheck, IconCircle, IconLockClosed, IconX, IconArrowRight, IconChevronRight, IconSparkles, IconExclamationTriangle, IconXCircle, IconInformationCircle, IconPaintBrush, IconLayers, IconPuzzlePiece, IconBolt, IconRocket, IconTrophy, IconLink, IconCopy, IconPanelBottom } from "tylix-icons"
+import BadgeIcon from "./components/BadgeIcon"
+import { IconPlay, IconRefresh, IconShare, IconPlus, IconTrash, IconFolderOpen, IconFileCode, IconBraces, IconDocument, IconTerminal, IconEye, IconCode, IconLightBulb, IconCheck, IconCircle, IconLockClosed, IconX, IconArrowRight, IconChevronRight, IconSparkles, IconExclamationTriangle, IconXCircle, IconInformationCircle, IconPaintBrush, IconBolt, IconTrophy, IconLink, IconCopy, IconPanelBottom, IconAcademicCap } from "tylix-icons"
 
 title "Playground · Tylix"
 
@@ -21,11 +22,11 @@ type PgLog = { id: number; level: string; text: string; source: string; file: st
 type PgDiag = { file: string; line: number; column: number; endLine?: number; endColumn?: number; message: string; severity: string; origin?: string }
 type PgStep = { id: string; text: string; hint: string; file: string }
 type PgBadge = { id: string; name: string; icon: string }
-type PgChallenge = { id: string; title: string; intro: string; badge: PgBadge; steps: PgStep[] }
+type PgChallenge = { id: string; title: string; intro: string; level: string; badge: PgBadge; steps: PgStep[] }
 type PgRow = { kind: string; name: string; path: string; depth: number; key: string }
 type PgDir = { dirs: Map<string, PgDir>; files: string[] }
 type PgBuild = { ok: boolean; html?: string; diagnostics: PgDiag[]; symbols: Record<string, unknown>; build: string; ms: number }
-type PgSnapshot = { title: string; headings: string[]; tasks: { id: string; status: string }[]; text: string }
+type PgSnapshot = { title: string; headings: string[]; tasks: { id: string; status: string }[]; text: string; inputs?: string[]; classes?: string }
 type PgMessage = { __tylixPlayground?: boolean; build?: string; type?: string; level?: string; text?: string; snapshot?: PgSnapshot }
 
 const PROTECTED = ["package.json"]
@@ -109,6 +110,7 @@ state
   done(string[]): []
   badges(string[]): []
   hintOpen: ""
+  guideNews: false
   botText: "Hi, I'm Tylix Bot. The app in the preview is real Tylix, compiled from these files on every change. Let's make it yours."
   botMood: "wave"
   toastText: ""
@@ -199,13 +201,60 @@ computed
     return this.done.length > 0
   }
 
+  // The first step of the current challenge that isn't done yet, shown
+  // above the code and the preview on small screens. An empty id: none left.
+  nextStep(): PgStep {
+    const none = { id: "", text: "", hint: "", file: "" }
+    const c = this.challenge
+    if not c {
+      return none
+    }
+    return c.steps.find((s) => not this.done.includes(c.id + "/" + s.id)) ?? none
+  }
+
+  beginnerCount() {
+    return this.challenges.filter((c) => c.level is not "intermediate").length
+  }
+
+  intermediateCount() {
+    return this.challenges.length - this.beginnerCount
+  }
+
+  isIntermediate() {
+    return this.challenge ? this.challenge.level is "intermediate" : false
+  }
+
+  // "Beginner · 2 of 5", for the challenge card.
+  trackLabel() {
+    if not this.challenge {
+      return ""
+    }
+    if this.isIntermediate {
+      return "Intermediate · " + (this.current - this.beginnerCount + 1) + " of " + this.intermediateCount
+    }
+    return "Beginner · " + (this.current + 1) + " of " + this.beginnerCount
+  }
+
 action
   // ── Start-up ─────────────────────────────────────────────────────────
 
   async boot() {
+    // The meta call first: it carries the version the editor modules are
+    // loaded with (?v=), so a deploy never pairs this page with old ones
+    // from a cache.
+    const answers = await Promise.all([useApi("/api/playground/meta"), useApi("/api/playground/starter")])
+    const meta = answers[0]
+    const result = answers[1]
+    let query = ""
+    if meta.ok {
+      const body = meta.data as { data: { version?: string; icons?: string[] } }
+      this.icons = body.data.icons ?? []
+      query = body.data.version ? "?v=" + encodeURIComponent(body.data.version) : ""
+    }
+
     let editorModule: any = null
     try {
-      const loaded = await Promise.all([loadModule("/playground/editor.js"), loadModule("/playground/workspace.js")])
+      const loaded = await Promise.all([loadModule("/playground/editor.js" + query), loadModule("/playground/workspace.js" + query)])
       editorModule = loaded[0]
       ws = loaded[1]
     } catch (err) {
@@ -215,7 +264,6 @@ action
     }
     this.challenges = ws.challengeSummaries() as PgChallenge[]
 
-    const result = await useApi("/api/playground/starter")
     if not result.ok {
       this.loadError = "The starter project couldn't be loaded. Refresh the page to try again."
       this.loading = false
@@ -223,14 +271,6 @@ action
     }
     const payload = result.data as { data: { files: PgFile[] } }
     this.starter = payload.data.files
-
-    useApi("/api/playground/meta").then((meta) => {
-      if meta.ok {
-        const body = meta.data as { data: { icons: string[] } }
-        this.icons = body.data.icons
-        this.updateCompletions()
-      }
-    })
 
     const saved = ws.loadSaved()
     let files: PgFile[] = this.starter
@@ -313,6 +353,10 @@ action
 
   start() {
     this.started = true
+    // On a phone the panels are tabs: begin with the challenge, not the code.
+    if window.matchMedia("(max-width: 1023px)").matches {
+      this.showPane("guide")
+    }
     this.persist()
     setTimeout(() => {
       editor?.refresh()
@@ -374,7 +418,7 @@ action
     this.newFileOpen = true
     this.newFileError = ""
     this.newFilePath = "app/pages/components/"
-    this.pane = "guide"
+    this.showPane("guide")
     setTimeout(() => {
       const input = document.getElementById("pg-new-file") as HTMLInputElement | null
       if input {
@@ -644,15 +688,19 @@ action
     this.done = [...this.done, ...passing]
 
     let unlockedBadge = ""
+    let unlockedIndex = -1
     this.challenges.forEach((c, i) => {
       if this.challengeDone(i) and not this.badges.includes(c.badge.id) {
         this.badges = [...this.badges, c.badge.id]
         unlockedBadge = c.badge.name
+        unlockedIndex = i
       }
     })
     if unlockedBadge {
       if this.allComplete {
-        this.say("happy", "Badge unlocked: " + unlockedBadge + ". That's all five! You've built, changed and shipped a real Tylix app. Ready for your own? Run npm create tylix@latest.")
+        this.say("happy", "Badge unlocked: " + unlockedBadge + ". That's every badge! Computed values, conditionals, binding, slots and your own capability: that's most of what a real Tylix page uses. Ready for your own? Run npm create tylix@latest.")
+      } else if unlockedIndex is this.beginnerCount - 1 {
+        this.say("happy", "Badge unlocked: " + unlockedBadge + ". That's the beginner track done! The intermediate track is open: computed values, conditionals, two-way binding, slots and capabilities of your own.")
       } else {
         this.say("happy", "Badge unlocked: " + unlockedBadge + ". Nicely done. The next challenge is open when you are.")
       }
@@ -664,6 +712,10 @@ action
       const step = this.challenges.find((c) => c.id is cid)?.steps.find((s) => s.id is sid)
       const cheers = ["Nice!", "That's it!", "Perfect.", "Spot on."]
       this.say("happy", cheers[this.done.length % cheers.length] + " Done: " + (step?.text ?? "a step") + "")
+      // On a phone the guide is on another tab, so say it where they are.
+      if this.pane is not "guide" and window.matchMedia("(max-width: 1023px)").matches {
+        this.showToast("Step done. " + (this.nextStep.id ? "Next: " + this.nextStep.text : "Challenge complete!"))
+      }
     }
     this.persist()
   }
@@ -679,6 +731,11 @@ action
 
   nextChallenge() {
     this.selectChallenge(Math.min(this.current + 1, this.challenges.length - 1))
+  }
+
+  continueOnGuide() {
+    this.nextChallenge()
+    this.showPane("guide")
   }
 
   toggleHint(step: PgStep) {
@@ -697,6 +754,16 @@ action
   say(mood: string, text: string) {
     this.botMood = mood
     this.botText = text
+    if this.pane is not "guide" {
+      this.guideNews = true
+    }
+  }
+
+  showPane(name: string) {
+    this.pane = name
+    if name is "guide" {
+      this.guideNews = false
+    }
   }
 
   isLocked(index: number) {
@@ -842,7 +909,8 @@ template
           <ul class="mt-10 grid gap-3 text-[14px] text-soft">
             <li class="flex gap-3"><IconBolt class="w-4 h-4 mt-0.5 text-brand dark:text-link shrink-0" /><span>The real Tylix compiler builds your code on every change.</span></li>
             <li class="flex gap-3"><IconEye class="w-4 h-4 mt-0.5 text-brand dark:text-link shrink-0" /><span>A live preview, a console and errors that point at the line.</span></li>
-            <li class="flex gap-3"><IconTrophy class="w-4 h-4 mt-0.5 text-brand dark:text-link shrink-0" /><span>Five short challenges, from your first edit to a shareable link.</span></li>
+            <li class="flex gap-3"><IconTrophy class="w-4 h-4 mt-0.5 text-brand dark:text-link shrink-0" /><span>Five beginner challenges, from your first edit to a shareable link.</span></li>
+            <li class="flex gap-3"><IconAcademicCap class="w-4 h-4 mt-0.5 text-brand dark:text-link shrink-0" /><span>Then five intermediate ones: computed values, conditionals, binding, slots and capabilities.</span></li>
           </ul>
         </div>
 
@@ -878,14 +946,29 @@ template
               </div>
             </div>
           </div>
-          <div class="mt-5 flex flex-wrap items-center gap-2 text-[13px] text-muted">
-            <span class="mr-1">5 challenges, 5 badges:</span>
+          <div class="mt-5 grid gap-2.5 text-[13px] text-muted">
+            <div class="pg-chip-row">
+              <span class="pg-chip-label">Beginner</span>
 {{#each c in challenges}}
-            <span class="pg-badge-chip" class:is-earned="{{ badgeEarned(c.badge.id) }}" title="{{ c.badge.name }}: {{ c.title }}">
-{{#if c.badge.icon is "paint"}}<IconPaintBrush class="w-3.5 h-3.5" />{{#else if c.badge.icon is "layers"}}<IconLayers class="w-3.5 h-3.5" />{{#else if c.badge.icon is "puzzle"}}<IconPuzzlePiece class="w-3.5 h-3.5" />{{#else if c.badge.icon is "bolt"}}<IconBolt class="w-3.5 h-3.5" />{{#else}}<IconRocket class="w-3.5 h-3.5" />{{/if}}
-              {{ c.badge.name }}
-            </span>
+{{#if c.level is not "intermediate"}}
+              <span class="pg-badge-chip" class:is-earned="{{ badgeEarned(c.badge.id) }}" title="{{ c.badge.name }}: {{ c.title }}">
+                <span class="w-3.5 h-3.5"><BadgeIcon icon="{{ c.badge.icon }}" /></span>
+                {{ c.badge.name }}
+              </span>
+{{/if}}
 {{/each}}
+            </div>
+            <div class="pg-chip-row">
+              <span class="pg-chip-label">Intermediate</span>
+{{#each c in challenges}}
+{{#if c.level is "intermediate"}}
+              <span class="pg-badge-chip" class:is-earned="{{ badgeEarned(c.badge.id) }}" title="{{ c.badge.name }}: {{ c.title }}">
+                <span class="w-3.5 h-3.5"><BadgeIcon icon="{{ c.badge.icon }}" /></span>
+                {{ c.badge.name }}
+              </span>
+{{/if}}
+{{/each}}
+            </div>
           </div>
         </div>
       </div>
@@ -919,11 +1002,34 @@ template
       </div>
 
       <nav class="pg-panes" aria-label="Playground panels">
-        <button type="button" class:is-on="{{ pane is 'guide' }}" onclick="{{ pane = 'guide' }}"><IconLightBulb class="w-4 h-4" /> Guide</button>
-        <button type="button" class:is-on="{{ pane is 'code' }}" onclick="{{ pane = 'code' }}"><IconCode class="w-4 h-4" /> Code</button>
-        <button type="button" class:is-on="{{ pane is 'preview' }}" onclick="{{ pane = 'preview' }}"><IconEye class="w-4 h-4" /> Preview</button>
-        <button type="button" class:is-on="{{ pane is 'console' }}" onclick="{{ pane = 'console' }}"><IconTerminal class="w-4 h-4" /> Console<span class="pg-count" class:is-hidden="{{ errorCount is 0 }}">{{ errorCount }}</span></button>
+        <button type="button" class:is-on="{{ pane is 'guide' }}" onclick="{{ showPane('guide') }}"><IconLightBulb class="w-4 h-4" /> Guide<span class="pg-news" class:is-hidden="{{ not guideNews }}" aria-label="New message"></span></button>
+        <button type="button" class:is-on="{{ pane is 'code' }}" onclick="{{ showPane('code') }}"><IconCode class="w-4 h-4" /> Code</button>
+        <button type="button" class:is-on="{{ pane is 'preview' }}" onclick="{{ showPane('preview') }}"><IconEye class="w-4 h-4" /> Preview</button>
+        <button type="button" class:is-on="{{ pane is 'console' }}" onclick="{{ showPane('console') }}"><IconTerminal class="w-4 h-4" /> Console<span class="pg-count" class:is-hidden="{{ errorCount is 0 }}">{{ errorCount }}</span></button>
       </nav>
+
+{{#if challenge}}
+      <div class="pg-now" aria-label="Current step">
+{{#if nextStep.id}}
+        <div class="pg-now-row">
+          <span class="pg-step-check"></span>
+          <p class="pg-now-text">{{ nextStep.text }}</p>
+          <button type="button" class="pg-mini-link" onclick="{{ toggleHint(nextStep) }}" aria-expanded="{{ hintOpen is stepKey(nextStep) }}">{{ hintOpen is stepKey(nextStep) ? "Hide" : "Hint" }}</button>
+        </div>
+{{#if hintOpen is stepKey(nextStep)}}
+        <div class="pg-hint pg-now-hint">{{ nextStep.hint }}</div>
+{{/if}}
+{{#else}}
+        <div class="pg-now-row">
+          <span class="pg-step-check is-done"><IconCheck class="w-3 h-3" /></span>
+          <p class="pg-now-text">{{ challenge.title }}: done.</p>
+{{#if hasNext}}
+          <button type="button" class="pg-mini-link" onclick="{{ continueOnGuide() }}">Next challenge</button>
+{{/if}}
+        </div>
+{{/if}}
+      </div>
+{{/if}}
 
       <aside class="pg-side" aria-label="Challenges and files">
         <div class="pg-bot-row">
@@ -948,12 +1054,12 @@ template
 {{#if challenge}}
         <section class="pg-challenge" aria-labelledby="pg-challenge-title">
           <div class="flex items-center justify-between gap-3">
-            <p class="text-[12px] font-mono text-muted">Challenge {{ current + 1 }} of {{ challenges.length }}</p>
+            <p class="pg-track" class:is-intermediate="{{ isIntermediate }}">{{ trackLabel }}</p>
             <p class="text-[12px] font-mono text-muted">{{ progressPct }}%</p>
           </div>
           <div class="pg-steps-bar" role="tablist" aria-label="Challenges">
 {{#each c, i in challenges}}
-            <button type="button" role="tab" class="pg-seg" class:is-done="{{ challengeDone(i) }}" class:is-current="{{ i is current }}" class:is-locked="{{ isLocked(i) }}" aria-selected="{{ i is current }}" aria-label="{{ isLocked(i) ? c.title + ' (locked)' : c.title }}" title="{{ c.title }}" onclick="{{ selectChallenge(i) }}"></button>
+            <button type="button" role="tab" class="pg-seg" class:is-done="{{ challengeDone(i) }}" class:is-current="{{ i is current }}" class:is-locked="{{ isLocked(i) }}" class:is-track-start="{{ i is beginnerCount }}" aria-selected="{{ i is current }}" aria-label="{{ isLocked(i) ? c.title + ' (locked)' : c.title }}" title="{{ c.title }}" onclick="{{ selectChallenge(i) }}"></button>
 {{/each}}
           </div>
           <h2 id="pg-challenge-title" class="mt-4 text-[17px] font-semibold tracking-[-0.01em] text-ink">{{ challenge.title }}</h2>
@@ -993,7 +1099,7 @@ template
           </div>
 {{#if allComplete and not hasNext}}
           <div class="pg-finale">
-            <p class="font-semibold text-ink">All five badges. Now make your own.</p>
+            <p class="font-semibold text-ink">Every badge, both tracks. Now make your own.</p>
             <p class="mt-1 text-muted">Everything you used here works the same in a real project, with a server, a database and auth around it.</p>
             <p class="pg-finale-cmd">npm create tylix@latest</p>
             <a href="/docs/installation" class="tx-link inline-flex items-center gap-1 mt-2">Installation guide <IconArrowRight class="w-3.5 h-3.5" /></a>
@@ -1002,14 +1108,19 @@ template
         </section>
 {{/if}}
 
-        <div class="pg-badges" aria-label="Badges">
-{{#each c in challenges}}
-          <span class="pg-badge" class:is-earned="{{ badgeEarned(c.badge.id) }}" title="{{ badgeEarned(c.badge.id) ? c.badge.name : c.badge.name + ' (locked)' }}">
-{{#if c.badge.icon is "paint"}}<IconPaintBrush class="w-4 h-4" />{{#else if c.badge.icon is "layers"}}<IconLayers class="w-4 h-4" />{{#else if c.badge.icon is "puzzle"}}<IconPuzzlePiece class="w-4 h-4" />{{#else if c.badge.icon is "bolt"}}<IconBolt class="w-4 h-4" />{{#else}}<IconRocket class="w-4 h-4" />{{/if}}
-          </span>
+        <section class="pg-badges" aria-label="Badges">
+          <div class="pg-badges-head">
+            <span>Badges</span>
+            <span>{{ badges.length }}/{{ challenges.length }}</span>
+          </div>
+          <div class="pg-badge-grid">
+{{#each c, i in challenges}}
+            <span class="pg-badge" class:is-earned="{{ badgeEarned(c.badge.id) }}" class:is-track-start="{{ i is beginnerCount }}" title="{{ badgeEarned(c.badge.id) ? c.badge.name : c.badge.name + ' (locked)' }}">
+              <span class="w-4 h-4"><BadgeIcon icon="{{ c.badge.icon }}" /></span>
+            </span>
 {{/each}}
-          <span class="ml-auto text-[12px] text-muted">{{ badges.length }}/{{ challenges.length }} badges</span>
-        </div>
+          </div>
+        </section>
 
         <section class="pg-files" aria-labelledby="pg-files-title">
           <div class="pg-files-head">
