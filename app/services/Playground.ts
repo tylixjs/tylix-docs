@@ -5,7 +5,7 @@
  *   compile(files)   one build: { ok, html, diagnostics, symbols, build, ms }
  *   starterFiles()   the Pixel Tasks project, from content/playground/
  *   iconNames()      every tylix-icons component, for autocomplete
- *   clientVersion()  a hash of public/playground/*.js, for their URLs
+ *   clientVersion()  a hash of public/playground/ (.js, .css), for their URLs
  *
  * One build at a time, in order. A build that runs past BUILD_TIMEOUT_MS
  * kills the worker (a fresh one starts for the next build) and fails with
@@ -163,14 +163,15 @@ let versionCache: Promise<string> | null = null;
 
 async function hashClientFiles(): Promise<string> {
     const dir = path.join(process.cwd(), "public", "playground");
-    const names = (await fs.readdir(dir)).filter((n) => n.endsWith(".js")).sort();
+    const names = (await fs.readdir(dir)).filter((n) => n.endsWith(".js") || n.endsWith(".css")).sort();
     const hash = crypto.createHash("sha256");
     for (const name of names) hash.update(name).update(await fs.readFile(path.join(dir, name)));
     return hash.digest("hex").slice(0, 10);
 }
 
 /**
- * The page loads editor.js, workspace.js and highlight.js with ?v=<this>.
+ * The page loads editor.js, workspace.js, highlight.js and playground.css
+ * with ?v=<this>.
  * Their names never change, so without it a deploy could pair the new page
  * with the old modules from the browser cache, the CDN or the service worker.
  */

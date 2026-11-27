@@ -64,6 +64,7 @@ content/playground/pixel-tasks/        the starter project (edit it like any Tyl
 app/pages/Playground.tyx               the page: workspace UI, state, challenges progress
 public/playground/editor.js            code editor (highlighting, completion, error marks)
 public/playground/highlight.js         .tyx / CSS / JSON highlighter
+public/playground/playground.css       the playground's styles (scoped under .pg-root)
 public/playground/workspace.js         saving, share links, challenge text and checks
 app/pages/components/BadgeIcon.tyx     a badge's icon, by the name workspace.js gives it
 app/services/Playground.ts             build queue around a worker thread
@@ -72,9 +73,17 @@ app/services/playground/               compileProject.mjs (the build), compileWo
 app/controllers/PlaygroundController.ts  GET starter, GET meta, POST compile
 ```
 
-The page loads the modules in public/playground/ with `?v=<hash>` from
-GET meta (never cached), so a deploy can't pair the new page with old
-modules from the browser cache, Cloudflare or the service worker. Keep that
+The page loads the modules and the stylesheet in public/playground/ with
+`?v=<hash>` from GET meta (never cached), so a deploy can't pair the new page
+with old modules or styles from the browser cache, Cloudflare or the service
+worker. Only the few rules needed before that loads (loading screen, hiding
+the workspace) live in app/tailwind-input.css. The rules are scoped under
+`.pg-root`, which outranks Tailwind utilities: put responsive display rules
+in playground.css rather than `hidden md:flex` on a `pg-` element.
+
+The gutters between the panels are drag handles (code | preview, and the
+console's height; arrow keys when focused, double-click to reset). The sizes
+are saved with the project in this browser. Keep that
 in mind when adding a module: import siblings with the caller's query, as
 editor.js does for highlight.js.
 

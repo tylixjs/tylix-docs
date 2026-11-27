@@ -226,6 +226,23 @@ export function createEditor(host, { onChange = () => {}, onRun = () => {}, onCu
     return Object.keys(sources.capabilities ?? {});
   }
 
+  // Whether the end of this text is inside an unclosed '…', "…" or `…`.
+  function insideString(text) {
+    let quote = "";
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (quote) {
+        if (c === "\\") i++;
+        else if (c === quote) quote = "";
+      } else if (c === '"' || c === "'" || c === "`") {
+        quote = c;
+      } else if (c === "/" && text[i + 1] === "/") {
+        return true; // a comment: no suggestions either
+      }
+    }
+    return quote !== "";
+  }
+
   function completionContext(explicit) {
     const value = input.value;
     const pos = input.selectionStart;
@@ -262,6 +279,12 @@ export function createEditor(host, { onChange = () => {}, onRun = () => {}, onCu
       SECTION_SNIPPETS.forEach((s) => add(s.label, s.insert, "section", s.detail));
       return finish(items, prefix, from, explicit);
     }
+
+    // Nothing to suggest inside a string literal ("Ada's Tasks"), in a
+    // script line or a {{ }} expression.
+    const mustache = before.lastIndexOf("{{");
+    const code = section === "template" ? (mustache > before.lastIndexOf("}}") ? before.slice(mustache + 2) : null) : before;
+    if (code !== null && insideString(code)) return null;
 
     // `{{#` blocks and `{{` expressions in a template.
     const block = /\{\{\s*([#@][\w ]*)$/.exec(before);
